@@ -509,7 +509,7 @@ def generate_professional_plots(summary_df):
     plt.savefig('failure_modes_distribution.png', dpi=300)
     plt.close()
 
-def run_all_scenarios(N=1000):
+def run_all_scenarios(N=10000):
     all_res = []
     
     for scenario in FIRE_SCENARIOS:
@@ -538,4 +538,4 @@ def run_all_scenarios(N=1000):
 
 if __name__ == "__main__":
     # Trial run with N=10,000
-    summary = run_all_scenarios(N=1000)
+    summary = run_all_scenarios(N=10000)
