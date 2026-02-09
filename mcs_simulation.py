@@ -12,25 +12,25 @@ import os
 SPECIES_DATA = {
     'W': {  # Anogeissus leiocarpa (White Wood)
         'name': 'Anogeissus leiocarpa',
-        'rho': {'dist': 'normal', 'mean': 809.0, 'std': 72.0},  # kg/m^3
-        'fm': {'dist': 'gumbel', 'mean': 22.7, 'std': 5.6},     # N/mm^2
-        'fv': {'dist': 'normal', 'mean': 3.5, 'std': 0.5},      # Shear strength
-        'E': {'dist': 'lognormal', 'mean': 4600.0, 'std': 600.0},
-        'MC': {'dist': 'normal', 'mean': 0.1525, 'std': 0.0425},
-        'thermal': {'lambda': 0.15, 'cp': 1600}, # W/mK, J/kgK
-        'char_insulation': 12.0,
-        'weights': {'exp': 0.4, 'mikkola': 0.3, 'hietaniemi': 0.3}
+        'rho': {'dist': 'normal', 'mean': 809.0, 'std': 72.0},  # kg/m^3 [1], [2]
+        'fm': {'dist': 'gumbel', 'mean': 22.7, 'std': 5.7},     # N/mm^2 [1], [2]
+        'fv': {'dist': 'normal', 'mean': 2.27, 'std': 0.57},    # Shear strength (Derived as 0.1*fm) [3]
+        'E': {'dist': 'lognormal', 'mean': 4612.0, 'std': 1247.0}, # [1], [2]
+        'MC': {'dist': 'normal', 'mean': 0.1525, 'std': 0.0425}, # [1], [4]
+        'thermal': {'lambda': 0.13, 'cp': 1500}, # W/mK, J/kgK [1], [5]
+        'char_insulation': 12.0, # [6], [7]
+        'weights': {'exp': 0.4, 'mikkola': 0.3, 'hietaniemi': 0.3} # [8], [9]
     },
     'R': {  # Erythrophleum suaveolens (Red Wood)
         'name': 'Erythrophleum suaveolens',
-        'rho': {'dist': 'normal', 'mean': 950.0, 'std': 164.0},
-        'fm': {'dist': 'normal', 'mean': 38.9, 'std': 9.3},
-        'fv': {'dist': 'normal', 'mean': 5.0, 'std': 0.8},
-        'E': {'dist': 'normal', 'mean': 8900.0, 'std': 1200.0},
-        'MC': {'dist': 'normal', 'mean': 0.1958, 'std': 0.0915},
-        'thermal': {'lambda': 0.19, 'cp': 1800},
-        'char_insulation': 18.0,
-        'weights': {'exp': 0.5, 'mikkola': 0.25, 'hietaniemi': 0.25}
+        'rho': {'dist': 'normal', 'mean': 745.0, 'std': 129.0}, # [10], [2]
+        'fm': {'dist': 'normal', 'mean': 38.9, 'std': 9.3},     # [10], [2]
+        'fv': {'dist': 'normal', 'mean': 3.89, 'std': 0.93},    # Shear strength (Derived as 0.1*fm) [3]
+        'E': {'dist': 'normal', 'mean': 8935.0, 'std': 1591.0},  # [10], [2]
+        'MC': {'dist': 'normal', 'mean': 0.1958, 'std': 0.0915}, # [10], [11]
+        'thermal': {'lambda': 0.16, 'cp': 1600}, # [10], [5]
+        'char_insulation': 18.0, # [6], [7]
+        'weights': {'exp': 0.4, 'mikkola': 0.3, 'hietaniemi': 0.3} # [8], [9]
     }
 }
 
