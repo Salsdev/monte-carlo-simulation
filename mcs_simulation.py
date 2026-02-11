@@ -12,25 +12,25 @@ import os
 SPECIES_DATA = {
     'W': {  # Anogeissus leiocarpa (White Wood)
         'name': 'Anogeissus leiocarpa',
-        'rho': {'dist': 'normal', 'mean': 809.0, 'std': 72.0},  # kg/m^3 [1], [2]
-        'fm': {'dist': 'gumbel', 'mean': 22.7, 'std': 5.7},     # N/mm^2 [1], [2]
-        'fv': {'dist': 'normal', 'mean': 2.27, 'std': 0.57},    # Shear strength (Derived as 0.1*fm) [3]
-        'E': {'dist': 'lognormal', 'mean': 4612.0, 'std': 1247.0}, # [1], [2]
-        'MC': {'dist': 'normal', 'mean': 0.1525, 'std': 0.0425}, # [1], [4]
-        'thermal': {'lambda': 0.13, 'cp': 1500}, # W/mK, J/kgK [1], [5]
-        'char_insulation': 12.0, # [6], [7]
-        'weights': {'exp': 0.4, 'mikkola': 0.3, 'hietaniemi': 0.3} # [8], [9]
+        'rho': {'dist': 'normal', 'mean': 809.0, 'std': 72.0},  # kg/m^3
+        'fm': {'dist': 'gumbel', 'mean': 22.7, 'std': 5.7},     # N/mm^2
+        'fv': {'dist': 'normal', 'mean': 2.27, 'std': 0.57},    # Shear strength (Derived as 0.1*fm)
+        'E': {'dist': 'lognormal', 'mean': 4612.0, 'std': 1247.0},
+        'MC': {'dist': 'normal', 'mean': 0.1525, 'std': 0.0425}, 
+        'thermal': {'lambda': 0.13, 'cp': 1500}, # W/mK, J/kgK
+        'char_insulation': 12.0,
+        'weights': {'exp': 0.4, 'mikkola': 0.3, 'hietaniemi': 0.3} 
     },
     'R': {  # Erythrophleum suaveolens (Red Wood)
         'name': 'Erythrophleum suaveolens',
-        'rho': {'dist': 'normal', 'mean': 745.0, 'std': 129.0}, # [10], [2]
-        'fm': {'dist': 'normal', 'mean': 38.9, 'std': 9.3},     # [10], [2]
-        'fv': {'dist': 'normal', 'mean': 3.89, 'std': 0.93},    # Shear strength (Derived as 0.1*fm) [3]
-        'E': {'dist': 'normal', 'mean': 8935.0, 'std': 1591.0},  # [10], [2]
-        'MC': {'dist': 'normal', 'mean': 0.1958, 'std': 0.0915}, # [10], [11]
-        'thermal': {'lambda': 0.16, 'cp': 1600}, # [10], [5]
-        'char_insulation': 18.0, # [6], [7]
-        'weights': {'exp': 0.4, 'mikkola': 0.3, 'hietaniemi': 0.3} # [8], [9]
+        'rho': {'dist': 'normal', 'mean': 745.0, 'std': 129.0}, 
+        'fm': {'dist': 'normal', 'mean': 38.9, 'std': 9.3},     
+        'fv': {'dist': 'normal', 'mean': 3.89, 'std': 0.93},    # Shear strength (Derived as 0.1*fm)
+        'E': {'dist': 'normal', 'mean': 8935.0, 'std': 1591.0},  
+        'MC': {'dist': 'normal', 'mean': 0.1958, 'std': 0.0915}, 
+        'thermal': {'lambda': 0.16, 'cp': 1600},
+        'char_insulation': 18.0, 
+        'weights': {'exp': 0.4, 'mikkola': 0.3, 'hietaniemi': 0.3} 
     }
 }
 
@@ -100,15 +100,34 @@ def get_fire_temperature(t, scenario_key):
 
 def mikkola_charring_rate(t, species_key, scenario_key, rho_sampled, MC_sampled):
     """
-    Implements Mikkola (1991) Model.
+    Impliment Mikkola (1991) Model per Thesis Methodology.
     """
-    T_fire = get_fire_temperature(t, scenario_key)
-    # Stefan-Boltzmann for heat flux
-    q_net = 5.67e-8 * 0.8 * ( (T_fire + 273)**4 - (20 + 273)**4 ) # W/m^2
-    # denominator (L_eff ~ 2.5e6 J/kg for wood pyrolysis)
-    L_eff = 2.5e6 * (1 + 2.5 * MC_sampled) 
-    beta_ms = q_net / (rho_sampled * L_eff) if rho_sampled > 0 else 0
-    return beta_ms * 1000 * 60 # mm/min
+    # 1. Scenario-dependent net heat flux (qe - qL)
+    flux_map = {'FTI': 50000, 'FTII': 35000, 'FTIII': 80000}
+    qe = flux_map.get(scenario_key, 50000)
+    qL = 15000  # Heat losses 
+    
+    # 2. Species-specific & Global Constants
+    Tp, T0, Tv = 300, 20, 100
+    Lv = 2250000    # J/kg 
+    Lvw = 2260000   # J/kg 
+    cw = 4200       # J/kgK 
+    
+    # Use species-specific cp from the table
+    c0 = SPECIES_DATA[species_key]['thermal']['cp'] 
+    
+    # 3. Explicit Denominator calculation 
+    # Energy to heat wood + Latent heat + Energy to heat/evap water
+    denominator = rho_sampled * (
+        c0 * (Tp - T0) + 
+        Lv + 
+        (cw - c0) * (Tv - T0) + 
+        Lvw * MC_sampled
+    )
+    
+    # 4. Result conversion to mm/min
+    beta_ms = (qe - qL) / denominator if denominator > 0 else 0
+    return beta_ms * 1000 * 60
 
 def hietaniemi_charring_rate(t, species_key, scenario_key, char_depth, treatment='untreated'):
     """
