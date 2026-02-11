@@ -129,39 +129,43 @@ def mikkola_charring_rate(t, species_key, scenario_key, rho_sampled, MC_sampled)
     beta_ms = (qe - qL) / denominator if denominator > 0 else 0
     return beta_ms * 1000 * 60
 
-def hietaniemi_charring_rate(t, species_key, scenario_key, char_depth, treatment='untreated'):
+def hietaniemi_charring_rate(t, species_key, scenario_key, w_sampled, rho_sampled):
     """
-    Implements Hietaniemi (2005) probabilistic charring model.
+    Corrected Hietaniemi (2005) Analytical Model per Thesis Methodology.
     """
-    params = SPECIES_DATA[species_key]
-    fire = FIRE_SCENARIOS[scenario_key]
-    
-    # Baseline experiments from Thesis (Table 4.6-4.8)
-    base_rates = {
-        ('W', 'FTI', 'untreated'): 0.71,
-        ('R', 'FTI', 'untreated'): 0.65,
-        ('W', 'FTII', 'untreated'): 0.85,
-        ('R', 'FTII', 'untreated'): 0.67,
-        ('W', 'FTIII', 'untreated'): 1.00,
-        ('R', 'FTIII', 'untreated'): 0.79,
+    # 1. Scenario and Species-dependent Char Insulation Constant (tau)
+    tau_map = {
+        'FTI':   {'W': 12, 'R': 18},
+        'FTII':  {'W': 15, 'R': 22},
+        'FTIII': {'W': 8,  'R': 12}
     }
+    tau = tau_map[scenario_key][species_key]
     
-    reduction = 0.80 if treatment == 'borax' else 1.0
-    beta_0 = base_rates.get((species_key, scenario_key, 'untreated'), 0.7)
+    # 2. Oxygen Factor f(chi_O2) - CORRECTION APPLIED HERE
+    # The source code includes a time-decay factor: (1 - 0.1 * t / 60)
+    base_o2 = {'FTI': 1.0, 'FTII': 0.85, 'FTIII': 1.15}
+    f_o2 = base_o2[scenario_key] * (1 - 0.1 * t / 60.0)
     
-    # Oxygen/Ventilation factor from Thesis Section 4.5.1
-    O_f = 1.15 if scenario_key == 'FTIII' else (0.85 if scenario_key == 'FTII' else 1.0)
-    
-    if fire['type'] == 'standard':
-        # Constant rate for ISO 834 Standard Fire
-        beta_t = beta_0 * O_f * reduction
+    # 3. Standard Heat Flux q_std(t) (W/m^2)
+    if t < 10:
+        q_std = 30000 + 5000 * t
+    elif t < 30:
+        q_std = 80000
     else:
-        # Exponential decay for parametric fires based on char depth (insulation)
-        tau = params['char_insulation']
-        # Physical model: char layer thickness reduces new charring
-        beta_t = beta_0 * O_f * np.exp(-char_depth / tau) * reduction
+        q_std = 70000
+        
+    # 4. Model Constants 
+    C, p, rho_0, A, B = 0.8, 1.2, 200, 0.5, 0.3
     
-    return beta_t
+    # 5. Analytical Equation
+    q_kw = q_std / 1000.0  # Convert W/m^2 to kW/m^2
+    numerator = f_o2 * C * q_kw / rho_sampled
+    denominator = (p + rho_0) * (A + B * w_sampled)
+    
+    # Conversion to mm/min with exponential decay 
+    beta_H = (numerator / denominator) * np.exp(-t / tau) * 1000
+    
+    return beta_H
 
 def combined_charring_rate(t, species_key, scenario_key, rho_sampled, MC_sampled, char_depth, theta_model, treatment='untreated'):
     """
@@ -170,7 +174,7 @@ def combined_charring_rate(t, species_key, scenario_key, rho_sampled, MC_sampled
     params = SPECIES_DATA[species_key]
     w = params['weights']
     
-    beta_exp = hietaniemi_charring_rate(t, species_key, scenario_key, char_depth, treatment) 
+    beta_exp = hietaniemi_charring_rate(t, species_key, scenario_key, MC_sampled, rho_sampled) 
     beta_M = mikkola_charring_rate(t, species_key, scenario_key, rho_sampled, MC_sampled)
     beta_H = beta_exp # Using Hietaniemi as both exp and H proxy for consistency
     
