@@ -233,19 +233,16 @@ def calculate_internal_temperature(x, t, T_fire, T_init, species_key):
 
 def calculate_kmod_fi(temp):
     """
-    Strength reduction factor per EN 1995-1-2.
+    Strength reduction factor per Methodology.
+    Linearly decreases from 1.0 at 20C to 0.0 at 300C.
     """
     if temp <= 20:
         return 1.0
-    elif temp >= 300:
-        return 0.0
+    elif temp < 300:
+        return 1.0 - (temp - 20) / 280.0
     else:
-        # Linear reduction from 20C to 100C (1.0 to 0.65)
-        # and 100C to 300C (0.65 to 0.0)
-        if temp <= 100:
-            return 1.0 - (1.0 - 0.65) * (temp - 20) / (100 - 20)
-        else:
-            return 0.65 - (0.65 - 0.0) * (temp - 100) / (300 - 100)
+        # Zero strength above 300C (Pyrolysis temperature)
+        return 0.0
 
 def calculate_kE_fi(temp):
     """
