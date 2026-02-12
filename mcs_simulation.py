@@ -253,7 +253,7 @@ def calculate_kE_fi(temp):
     if temp <= 20:
         return 1.0
     elif temp < 400:
-        # Single linear decay per Eq 3.4.3.2 in the methodology
+        # Single linear decay in the methodology
         return 1.0 - (temp - 20) / 380.0
     else:
         # Zero stiffness above 400C
@@ -272,24 +272,60 @@ def calculate_average_temperature(d_char, t, T_fire, species_key):
     # We use 300C as boundary instead of T_fire for the internal gradient.
     return calculate_internal_temperature(depth_x, t, 300.0, 20, species_key)
 
-def get_effective_section(b0, h0, d_char, species_key, t, scenario_key, T_fire, d0=7.0):
+def get_effective_section_integrated(b0, h0, d_char, species_key, t, T_fire):
     """
-    EN 1995-1-2 Reduced Cross Section Method (RCSM).
-    d_ef = d_char + d0
+    Refined Integrated Effective Section per Methodology Section 3.4.3.1.
+    Accounts for 3-sided exposure and shifting neutral axis.
     """
-    d_ef = d_char + d0
-    
-    b_ef = max(0, b0 - 2 * d_ef)
-    h_ef = max(0, h0 - 2 * d_ef)
-    
-    if b_ef <= 0 or h_ef <= 0:
-        return 0, 0, 0
+    if d_char >= h0 or 2*d_char >= b0:
+        return 0, 0, 0 
         
-    A_ef = b_ef * h_ef
-    I_ef = (b_ef * h_ef**3) / 12
-    W_ef = (b_ef * h_ef**2) / 6
+    n_layers = 20
+    h_residual = h0 - d_char
+    b_residual = b0 - 2 * d_char
+    layer_thickness = h_residual / n_layers
     
-    return A_ef, W_ef, I_ef
+    A_eff = 0
+    stat_moment_E = 0 # For calculating kE-weighted centroid
+    
+    # First pass: Calculate A_eff and Centroid (y_bar)
+    layer_data = []
+    for i in range(n_layers):
+        # x is distance from the char line (exposed face)
+        x_dist = (i + 0.5) * layer_thickness
+        T_layer = calculate_internal_temperature(x_dist, t, 300.0, 20.0, species_key)
+        
+        k_mod = calculate_kmod_fi(T_layer)
+        k_E = calculate_kE_fi(T_layer)
+        
+        dA = b_residual * layer_thickness
+        A_eff += dA * k_mod
+        
+        # We use k_E to find the 'stiffness centroid'
+        stat_moment_E += (dA * k_E) * x_dist
+        layer_data.append((x_dist, dA, k_E, k_mod))
+
+    if A_eff <= 0: return 0, 0, 0
+
+    # stiffness-weighted centroid from the bottom char line
+    sum_kE_dA = sum(d[1] * d[2] for d in layer_data)
+    y_bar_fi = stat_moment_E / sum_kE_dA if sum_kE_dA > 0 else h_residual / 2
+    
+    # Second pass: Calculate I_eff about the NEW neutral axis
+    I_eff = 0
+    for x_dist, dA, k_E, k_mod in layer_data:
+        # Parallel Axis Theorem: (I_local + dA * distance^2) * k_E
+        dist_to_na = x_dist - y_bar_fi
+        I_layer = (b_residual * layer_thickness**3 / 12) + dA * dist_to_na**2
+        I_eff += I_layer * k_E
+        
+    # Section Modulus W_eff
+    # Distance to extreme fibers from shifted NA
+    y_top = h_residual - y_bar_fi
+    y_bottom = y_bar_fi
+    W_eff = I_eff / max(y_top, y_bottom)
+    
+    return A_eff, W_eff, I_eff
 
 def bending_limit_state(M_Ed, fm, W_ef, k_mod_fi, theta_R):
     """
@@ -299,16 +335,49 @@ def bending_limit_state(M_Ed, fm, W_ef, k_mod_fi, theta_R):
     M_Rd_fi = fm * W_ef * k_mod_fi / gamma_M_fi
     return theta_R * M_Rd_fi - M_Ed
 
-def buckling_limit_state(N_Ed, E_mean, I_ef, A_ef, k_E_fi, k_mod_fi, theta_R, L_unbraced=2000):
+def buckling_limit_state(N_Ed, f_c0_k, E_05_fi, I_ef, A_ef, k_mod_fi, theta_R, L_unbraced=2000):
     """
-    G = theta_R * N_Rd,fi - N_Ed
-    """
-    E_fi = E_mean * k_E_fi
-    P_cr = (np.pi**2 * E_fi * I_ef) / (L_unbraced**2)
-    N_pl = A_ef * 20.0 * k_mod_fi 
+    Corrected Buckling Limit State per Methodology.
     
-    N_Rd_fi = min(P_cr, N_pl)
-    return theta_R * N_Rd_fi - N_Ed
+    Args:
+        N_Ed: Design axial load in fire (N)
+        f_c0_k: Characteristic compressive strength (N/mm^2)
+        E_05_fi: 5th percentile Stiffness (N/mm^2)
+        I_ef: Effective second moment of area (mm^4) (includes stiffness reduction kE)
+        A_ef: Effective area (mm^2) (includes strength reduction k_mod)
+        k_mod_fi: Strength reduction factor (average for cross-section)
+        theta_R: Model uncertainty factor
+    """
+    # 1. Calculate Radius of Gyration (i_ef)
+    if A_ef <= 0: return -1.0 # Failure if section is gone
+    i_ef = np.sqrt(I_ef / A_ef)
+    
+    # 2. Calculate Relative Slenderness (lambda_fi)
+    # L_cr is the effective buckling length
+    lambda_fi = (L_unbraced / (np.pi * i_ef)) * np.sqrt(f_c0_k / E_05_fi)
+    
+    # 3. Calculate Instability Factor k
+    # beta_c = 0.1 for the specific methodology/glulam
+    beta_c = 0.1 
+    k = 0.5 * (1 + beta_c * (lambda_fi - 0.3) + lambda_fi**2)
+    
+    # 4. Calculate Buckling Reduction Factor k_c,fi
+    # This reduces capacity based on slenderness
+    denom = k + np.sqrt(k**2 - lambda_fi**2)
+    if k**2 < lambda_fi**2: # Catch math domain error if very slender
+        k_c_fi = 0.0
+    else:
+        k_c_fi = 1.0 / denom
+        k_c_fi = min(k_c_fi, 1.0) # Cap at 1.0
+    
+    # 5. Calculate Resistance N_b,Rd,fi
+    # Note: A_ef and k_mod_fi are already degraded by fire time t
+    N_Rd_fi = k_mod_fi * f_c0_k * A_ef * k_c_fi
+    
+    # 6. Limit State Function
+    G = theta_R * N_Rd_fi - N_Ed
+    
+    return G
 
 def shear_limit_state(V_Ed, fv, A_ef, k_mod_fi, theta_R):
     """
@@ -362,6 +431,24 @@ def run_simulation(N=1000, species_key='W', scenario_key='FTI', treatment='untre
     # Stochastic Loads Parameters
     G_params = {'mean': 1.0e6, 'std': 0.1e6} # Dead Load (N-mm) proxy
     Q_params = {'mean': 0.5e6, 'std': 0.15e6} # Live Load (N-mm) proxy
+    
+    # Compute Characteristic values for Buckling (once per species)
+    # Using 5th percentile of bending and stiffness as proxy for fc0,k and E05
+    def get_k_vals(p):
+        if p['dist'] == 'gumbel':
+            beta = p['std'] * np.sqrt(6) / np.pi
+            mu = p['mean'] - np.euler_gamma * beta
+            return mu - beta * np.log(-np.log(0.05))
+        elif p['dist'] == 'lognormal':
+            sigma = np.sqrt(np.log(1 + (p['std']/p['mean'])**2))
+            mu = np.log(p['mean']) - 0.5 * sigma**2
+            return np.exp(mu - 1.645 * sigma)
+        else: # normal or static
+            return p['mean'] - 1.645 * p['std']
+            
+    f_c0_k = get_k_vals(species['fm'])
+    # Eurocode fire factor k_fi (approx 1.25 for glulam)
+    E_05_fi = get_k_vals(species['E']) * 1.25 
     
     print(f"Running Full Fidelity MCS: {N} iterations for {species['name']}...")
     
@@ -424,7 +511,7 @@ def run_simulation(N=1000, species_key='W', scenario_key='FTI', treatment='untre
                 char_depth += beta_eff 
             
             # 2. Section Analysis
-            A_ef, W_ef, I_ef = get_effective_section(150, 200, char_depth, species_key, t, scenario_key, T_fire)
+            A_ef, W_ef, I_ef = get_effective_section_integrated(150, 200, char_depth, species_key, t, T_fire)
             
             # 3. Thermal Analysis (Reduction Factors)
             T_heated = calculate_average_temperature(char_depth, t, T_fire, species_key)
@@ -438,7 +525,7 @@ def run_simulation(N=1000, species_key='W', scenario_key='FTI', treatment='untre
             
             if bending_limit_state(M_Ed, fm, W_ef, k_mod_fi, theta_R) <= 0:
                 failure_mode = 'Bending'; failed = True
-            elif buckling_limit_state(N_Ed, E, I_ef, A_ef, k_E_fi, k_mod_fi, theta_R) <= 0:
+            elif buckling_limit_state(N_Ed, f_c0_k, E_05_fi, I_ef, A_ef, k_mod_fi, theta_R) <= 0:
                 failure_mode = 'Buckling'; failed = True
             elif shear_limit_state(V_Ed, fv, A_ef, k_mod_fi, theta_R) <= 0:
                 failure_mode = 'Shear'; failed = True
