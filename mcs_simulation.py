@@ -46,6 +46,7 @@ FIRE_SCENARIOS = {
         'duration': 43, # Expanded for parametric decay
         'opening_factor': 0.028,
         'b_factor': 1160, # Thermal inertia
+        'q_t_d': 158.9,   # Fire load density (MJ/m2)
         'type': 'parametric'
     },
     'FTIII': {
@@ -53,6 +54,7 @@ FIRE_SCENARIOS = {
         'duration': 45,
         'opening_factor': 0.137,
         'b_factor': 1160,
+        'q_t_d': 204.0,   # Fire load density (MJ/m2)
         'type': 'parametric'
     }
 }
@@ -88,9 +90,12 @@ def get_fire_temperature(t, scenario_key):
         # Parametric Fire (EN 1991-1-2)
         O = fire['opening_factor']
         b = fire['b_factor']
+        q_t_d = fire['q_t_d']
         gamma = (O / 0.04)**2 / (b / 1160)**2
         
-        t_max = 0.2 * 10**-3 * 400 / O # Time of peak (hours)
+        # t_max = max(0.0002 * q_t_d / O, t_lim)
+        # t_lim = 20 mins = 0.333 hours
+        t_max = max(0.0002 * q_t_d / O, 0.333) 
         t_max_star = t_max * gamma
         
         t_star = (t / 60.0) * gamma  # Normalized time (hours)
