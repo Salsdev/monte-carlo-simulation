@@ -340,7 +340,7 @@ def sample_variable(params):
         std = params['std']
         mean = params['mean']
         beta = std * np.sqrt(6) / np.pi
-        mu = mean - 0.577 * beta
+        mu = mean - np.euler_gamma * beta
         return np.random.gumbel(mu, beta)
     elif params['dist'] == 'static':
         return params['mean']
