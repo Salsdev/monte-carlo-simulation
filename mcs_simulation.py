@@ -246,19 +246,18 @@ def calculate_kmod_fi(temp):
 
 def calculate_kE_fi(temp):
     """
-    Stiffness reduction factor per EN 1995-1-2.
+    Stiffness reduction factor (MOE) per Methodology.
+    
+    Linearly decreases from 1.0 at 20C to 0.0 at 400C.
     """
     if temp <= 20:
         return 1.0
-    elif temp >= 300:
-        return 0.0
+    elif temp < 400:
+        # Single linear decay per Eq 3.4.3.2 in the methodology
+        return 1.0 - (temp - 20) / 380.0
     else:
-        # Stiffness typically reduces faster/different from strength
-        # Simplified Eurocode curve
-        if temp <= 100:
-            return 1.0 - (1.0 - 0.5) * (temp - 20) / (100 - 20)
-        else:
-            return 0.5 - (0.5 - 0.0) * (temp - 100) / (300 - 100)
+        # Zero stiffness above 400C
+        return 0.0
 
 def calculate_average_temperature(d_char, t, T_fire, species_key):
     """
