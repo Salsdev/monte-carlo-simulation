@@ -214,19 +214,21 @@ def combined_charring_rate(t, species_key, scenario_key, rho_sampled, MC_sampled
 
 def calculate_internal_temperature(x, t, T_fire, T_init, species_key):
     """
-    Heat conduction solution: T(x,t) = T_init + (T_fire - T_init) * erfc(x / sqrt(4*alpha*t))
-    x: depth from char line (m)
-    t: time (s)
-    alpha: thermal diffusivity (lambda / rho*cp)
+    Corrected Temperature Profile per Section 3.4.3.1 of your Thesis.
     """
     if t <= 0: return T_init
-    params = SPECIES_DATA[species_key]
-    rho = params['rho']['mean']
-    therm = params['thermal']
-    alpha = therm['lambda'] / (rho * therm['cp']) # m^2/s
-    
-    from scipy.special import erfc
-    T = T_init + (T_fire - T_init) * erfc(x / np.sqrt(4 * alpha * t))
+
+    # 1. Use pre-calculated alpha from Table 3.9 / 4.10
+    alpha_map = {'W': 1.07e-7, 'R': 1.34e-7}
+    alpha = alpha_map[species_key]
+
+    # 2. t must be in seconds for alpha (m^2/s)
+    t_seconds = t * 60
+
+    # 3. Exponential decay formula from your methodology
+    # x is the distance from the heat source/char line
+    T = T_init + (T_fire - T_init) * np.exp(-x / np.sqrt(4 * alpha * t_seconds))
+
     return min(T, 300) # Cap at pyrolysis temperature for stiffness calculations
 
 def calculate_kmod_fi(temp):
@@ -272,7 +274,7 @@ def calculate_average_temperature(d_char, t, T_fire, species_key):
     depth_x = 30.0e-3 
     # The temperature AT the char line is always 300C (isotherm definition)
     # We use 300C as boundary instead of T_fire for the internal gradient.
-    return calculate_internal_temperature(depth_x, t*60, 300.0, 20, species_key)
+    return calculate_internal_temperature(depth_x, t, 300.0, 20, species_key)
 
 def get_effective_section(b0, h0, d_char, species_key, t, scenario_key, T_fire, d0=7.0):
     """
