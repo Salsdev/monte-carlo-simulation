@@ -57,6 +57,15 @@ FIRE_SCENARIOS = {
     }
 }
 
+EXPERIMENTAL_BASE_RATES = {
+    ('W', 'FTI'): 0.71,
+    ('R', 'FTI'): 0.65,
+    ('W', 'FTII'): 0.85,
+    ('R', 'FTII'): 0.67,
+    ('W', 'FTIII'): 1.00,
+    ('R', 'FTIII'): 0.79
+}
+
 # =================================================================
 # 2. CORE PHYSICS & MODELS (Phase 2)
 # =================================================================
@@ -167,18 +176,33 @@ def hietaniemi_charring_rate(t, species_key, scenario_key, w_sampled, rho_sample
     
     return beta_H
 
-def combined_charring_rate(t, species_key, scenario_key, rho_sampled, MC_sampled, char_depth, theta_model, treatment='untreated'):
+def combined_charring_rate(t, species_key, scenario_key, rho_sampled, MC_sampled, beta_exp_sampled, theta_model):
     """
-    beta_eff = theta_model * [w_exp*beta_exp + w_M*beta_M + w_H*beta_H]
-    """
-    params = SPECIES_DATA[species_key]
-    w = params['weights']
+    Calculates the Effective Charring Rate per Methodology
     
-    beta_exp = hietaniemi_charring_rate(t, species_key, scenario_key, MC_sampled, rho_sampled) 
+    The effective rate is a weighted average of experimental data and analytical models,
+    scaled by a model uncertainty factor.
+    
+    Args:
+        beta_exp_sampled: The experimental rate sampled once at the start of the simulation.
+        theta_model: Model uncertainty factor sampled from Lognormal(1.0, 0.1).
+    """
+    # 1. Analytical Mikkola Calculation (Time-dependent)
     beta_M = mikkola_charring_rate(t, species_key, scenario_key, rho_sampled, MC_sampled)
-    beta_H = beta_exp # Using Hietaniemi as both exp and H proxy for consistency
     
-    beta_eff = theta_model * (w['exp']*beta_exp + w['mikkola']*beta_M + w['hietaniemi']*beta_H)
+    # 2. Analytical Hietaniemi Calculation (Time-dependent)
+    beta_H = hietaniemi_charring_rate(t, species_key, scenario_key, MC_sampled, rho_sampled)
+    
+    # 3. Apply Weighting Factors (0.4, 0.3, 0.3)
+    # Experimental data (0.4) is prioritized, with analytical models (0.3 each) providing 
+    # physics-based adjustments for time-dependent behavior.
+    w_exp, w_M, w_H = 0.4, 0.3, 0.3
+    
+    beta_weighted = (w_exp * beta_exp_sampled) + (w_M * beta_M) + (w_H * beta_H)
+    
+    # 4. Apply Model Uncertainty Factor
+    beta_eff = theta_model * beta_weighted
+    
     return beta_eff
 
 def calculate_internal_temperature(x, t, T_fire, T_init, species_key):
@@ -345,11 +369,16 @@ def run_simulation(N=1000, species_key='W', scenario_key='FTI', treatment='untre
         MC = sample_variable(species['MC'])
         
         # 2. Sample Uncertainties
-        theta_model = sample_uncertainty(1.0, 0.07)
+        theta_model = sample_uncertainty(1.0, 0.10)
         theta_R = sample_uncertainty(1.0, 0.10)
         theta_E = sample_uncertainty(1.0, 0.05)
         
-        # 3. Sample Loads (Structural Analysis Logic)
+        # 3. Sample Case-Specific Variables
+        base_rate = EXPERIMENTAL_BASE_RATES.get((species_key, scenario_key), 0.7)
+        reduction = 0.8 if treatment == 'borax' else 1.0
+        beta_exp_sampled = base_rate * reduction
+        
+        # 4. Sample Loads (Structural Analysis Logic)
         G_load = np.random.normal(G_params['mean'], G_params['std'])
         # FIX: Correct Gumbel sampling using the utility logic
         Q_load = sample_variable({'dist': 'gumbel', 'mean': Q_params['mean'], 'std': Q_params['std']})
@@ -369,7 +398,7 @@ def run_simulation(N=1000, species_key='W', scenario_key='FTI', treatment='untre
             # 1. Update char depth (mm)
             if t > 0:
                 # Calculate rate based on state at previous step
-                beta_eff = combined_charring_rate(t, species_key, scenario_key, rho, MC, char_depth, theta_model, treatment)
+                beta_eff = combined_charring_rate(t, species_key, scenario_key, rho, MC, beta_exp_sampled, theta_model)
                 char_depth += beta_eff 
             
             # 2. Section Analysis
@@ -532,7 +561,7 @@ def generate_professional_plots(summary_df):
     plt.savefig('failure_modes_distribution.png', dpi=300)
     plt.close()
 
-def run_all_scenarios(N=10000):
+def run_all_scenarios(N=1000):
     all_res = []
     
     for scenario in FIRE_SCENARIOS:
@@ -561,4 +590,4 @@ def run_all_scenarios(N=10000):
 
 if __name__ == "__main__":
     # Trial run with N=10,000
-    summary = run_all_scenarios(N=10000)
+    summary = run_all_scenarios(N=1000)
