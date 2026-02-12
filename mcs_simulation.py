@@ -57,13 +57,20 @@ FIRE_SCENARIOS = {
     }
 }
 
-EXPERIMENTAL_BASE_RATES = {
-    ('W', 'FTI'): 0.71,
-    ('R', 'FTI'): 0.65,
-    ('W', 'FTII'): 0.85,
-    ('R', 'FTII'): 0.67,
-    ('W', 'FTIII'): 1.00,
-    ('R', 'FTIII'): 0.79
+# Expanded to include COV and Treatment
+EXPERIMENTAL_CHARRING_DATA = {
+    'FTI': {
+        'W': {'untreated': {'mean': 0.71, 'cov': 0.08}, 'treated': {'mean': 0.57, 'cov': 0.05}},
+        'R': {'untreated': {'mean': 0.65, 'cov': 0.04}, 'treated': {'mean': 0.57, 'cov': 0.03}}
+    },
+    'FTII': {
+        'W': {'untreated': {'mean': 0.85, 'cov': 0.12}, 'treated': {'mean': 0.73, 'cov': 0.08}},
+        'R': {'untreated': {'mean': 0.67, 'cov': 0.06}, 'treated': {'mean': 0.52, 'cov': 0.04}}
+    },
+    'FTIII': {
+        'W': {'untreated': {'mean': 1.00, 'cov': 0.15}, 'treated': {'mean': 0.86, 'cov': 0.10}},
+        'R': {'untreated': {'mean': 0.79, 'cov': 0.07}, 'treated': {'mean': 0.60, 'cov': 0.04}}
+    }
 }
 
 # =================================================================
@@ -373,10 +380,27 @@ def run_simulation(N=1000, species_key='W', scenario_key='FTI', treatment='untre
         theta_R = sample_uncertainty(1.0, 0.10)
         theta_E = sample_uncertainty(1.0, 0.05)
         
-        # 3. Sample Case-Specific Variables
-        base_rate = EXPERIMENTAL_BASE_RATES.get((species_key, scenario_key), 0.7)
-        reduction = 0.8 if treatment == 'borax' else 1.0
-        beta_exp_sampled = base_rate * reduction
+        # 3. Sample Experimental Charring Rate (Lognormal)
+        # Map 'borax' to 'treated' to match the experimental data keys
+        cond = 'treated' if treatment == 'borax' else 'untreated'
+        char_params = EXPERIMENTAL_CHARRING_DATA[scenario_key][species_key][cond]
+
+        # Retrieve arithmetic Mean and COV from data
+        m = char_params['mean']
+        cov = char_params['cov']
+
+        # Convert arithmetic statistics to underlying Normal distribution parameters
+        # Variance v = (mean * cov)^2
+        v = (m * cov)**2 
+
+        # sigma_ln = sqrt(ln(1 + v / m^2)) = sqrt(ln(1 + cov^2))
+        sigma_ln = np.sqrt(np.log(1 + v / m**2))
+
+        # mu_ln = ln(mean) - 0.5 * sigma_ln^2
+        mu_ln = np.log(m) - 0.5 * sigma_ln**2
+
+        # Sample from Lognormal distribution
+        beta_exp_sampled = np.random.lognormal(mu_ln, sigma_ln)
         
         # 4. Sample Loads (Structural Analysis Logic)
         G_load = np.random.normal(G_params['mean'], G_params['std'])
