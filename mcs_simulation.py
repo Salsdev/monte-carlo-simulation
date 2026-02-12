@@ -381,9 +381,13 @@ def buckling_limit_state(N_Ed, f_c0_k, E_05_fi, I_ef, A_ef, k_mod_fi, theta_R, L
 
 def shear_limit_state(V_Ed, fv, A_ef, k_mod_fi, theta_R):
     """
-    G = theta_R * V_Rd,fi - V_Ed
+    Shear limit state for rectangular timber sections.
+    The 1.5 factor accounts for the parabolic shear stress distribution (max at NA).
+    Matches 0.67 multiplier in Methodology Python Code.
     """
-    V_Rd_fi = (fv * A_ef * k_mod_fi) / 1.5
+    # V_Rd_fi = (Capacity * Area * Fire_Reduction) / Form_Factor
+    V_Rd_fi = (fv * A_ef * k_mod_fi) / 1.5 
+    
     return theta_R * V_Rd_fi - V_Ed
 
 def sample_variable(params):
