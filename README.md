@@ -1,82 +1,74 @@
-# Reliability Analysis of Nigerian Timber Roof Trusses in Fire
+# Fire Reliability Analysis of Structural Timber
+## High-Fidelity Monte Carlo Simulation (MCS) Framework
 
-## Probabilistic Assessment using Monte Carlo Simulation (MCS)
-
-This project implements a high-fidelity probabilistic framework to evaluate the structural reliability of Nigerian hardwood roof trusses exposed to fire. By integrating experimental material data with stochastic modeling, the system quantifies the safety gap between indigenous timber species—**African Birch** (*Anogeissus leiocarpa*) and **Tali** (*Erythrophleum suaveolens*)—and international safety standards (EN 1990).
-
----
-
-## 🛠 Methodology Overview
-
-The project follows a four-phase research design as outlined in the PhD Thesis methodology:
-
-### Phase 1: Material Characterization
-
-Laboratory-determined physical and mechanical properties of Nigerian hardwoods are modeled as random variables.
-
-* **Statistical Distributions:** Normal (Density), Lognormal (MOE), and Gumbel (Bending Strength).
-* **Correlation Structure:** Incorporates physical dependencies (e.g., higher density correlates with higher strength and lower charring rates).
-
-### Phase 2: Fire Scenario Modeling
-
-The system evaluates trusses against three distinct fire exposures:
-
-1. **FTI (Standard ISO 834):** Continuous logarithmic heating for 60 minutes.
-2. **FTII (Parametric Kitchen):** Low ventilation, long-duration fire with a cooling phase.
-3. **FTIII (Parametric Sitting Room):** High ventilation, rapid-growth fire with synthetic fuel loads.
-
-### Phase 3: Physics & Structural Engine
-
-* **Charring Dynamics:** A hybrid model weighting **Mikkola (1991)** heat flux and **Hietaniemi (2005)** probabilistic insulation models.
-* **Thermal Profiling:** Solves 1D transient heat conduction using the Complementary Error Function (erfc) to determine core temperatures.
-* **RCSM Implementation:** Uses the **EN 1995-1-2 Reduced Cross-Section Method** with a time-dependent zero-strength layer ($d_0 = 7$ mm).
-
-### Phase 4: Reliability Assessment
-
-* **Monte Carlo Engine:** 100,000 iterations per scenario to estimate the Probability of Failure ($P_f$).
-* **Safety Metric:** Calculates the Reliability Index ($\beta$), benchmarking against the **EN 1990 target of $\beta = 3.8$**.
-* **Limit States:** Evaluates Bending ($M_R$), Buckling ($N_R$), and Shear ($V_R$).
+This repository contains a professional-grade probabilistic framework for evaluating the structural reliability of timber beams exposed to fire. The simulation integrates advanced thermo-mechanical models with stochastic sampling to quantify safety margins and reliability indices ($\beta$) per international standards (Eurocodes).
 
 ---
 
-## 🚀 Features
+## 🛠 Project Methodology
 
-* **Exact Statistics:** Uses Clopper-Pearson exact confidence intervals for $P_f$ instead of approximations.
-* **Advanced Cooling Phase:** Implements the exact EN 1991-1-2 cooling decay logic based on fire duration.
-* **Sensitivity Analysis:** Performs Spearman Rank Correlation to identify the primary drivers of structural failure (e.g., Load vs. Density).
-* **Visualization Suite:** Generates publication-quality heatmaps, error-bar reliability plots, and failure mode distributions.
+The simulation implements a multi-physics approach to model the degradation of timber performance during fire exposure.
+
+### 1. Stochastic Material & Load Framework
+To account for natural variability in wood properties and structural loading, the system samples input variables from statistical distributions:
+*   **Material Properties**: Bending Strength (Gumbel), Modulus of Elasticity (Lognormal), Density (Normal), and Moisture Content (Normal).
+*   **Stochastic Loads**: Design fire loads are calculated using a combination of Normal (Dead Load) and Gumbel (Live Load) distributions, adjusted by uncertainty factors ($\theta$).
+*   **Model Probabilities**: Includes multiplicative uncertainty factors for resistance ($\theta_R$), loading ($\theta_E$), and the charring model itself.
+
+### 2. Multi-Model Charring Dynamics
+The effective charring rate ($\beta_{eff}$) is calculated using a weighted hybrid approach (40/30/30) to maximize robustness:
+*   **Experimental Data (40%)**: Derived from site-specific fire tests for Nigerian hardwoods (*Anogeissus leiocarpa* and *Erythrophleum suaveolens*).
+*   **Mikkola Physics Model (30%)**: A net heat flux model based on the energy required for wood pyrolysis and water evaporation.
+*   **Hietaniemi Analytical Model (30%)**: Accounts for time-dependent oxygen factors and thermal insulation decay.
+
+### 3. Integrated Reduced Cross-Section Method (RCSM)
+Unlike simplified models that use a fixed zero-strength layer, this framework uses **Numerical Integration**:
+*   **Discretization**: The residual beam is divided into 20 thermal layers.
+*   **Thermal Profiling**: Solves transient heat conduction to map temperatures within each layer.
+*   **Layer-Wise Reduction**: Specific reduction factors ($k_{mod,fi}$ for strength and $k_{E,fi}$ for stiffness) are applied to each layer based on its instantaneous temperature.
+*   **Shifted Neutral Axis**: Dynamically calculates the section modulus ($W_{ef}$) and moment of inertia ($I_{ef}$) as the beam chars and the thermal gradient shifts.
 
 ---
 
-## 💻 Technical Implementation
+## 🏗 Structural Reliability Engine
 
-The project is built using Python 3.10+ with the following stack:
+The framework evaluates three critical **Limit State Functions (LSF)** every minute:
 
-* **NumPy & SciPy:** For stochastic sampling and error function mathematics.
-* **Pandas:** For high-resolution data management and CSV exports.
-* **Matplotlib:** For high-fidelity technical plots and heatmaps.
-* **tqdm:** For real-time simulation progress tracking.
+1.  **Bending (`Bending`)**: Evaluates the strength-weighted section modulus against design moments.
+2.  **Buckling (`Buckling`)**: Assesses stability using the Euler critical load and relative slenderness ($\lambda_{fi}$) of the heated residual section.
+3.  **Shear (`Shear`)**: Checks local resistance at supports as the cross-section area is reduced.
+
+### Results & Statistics
+*   **Probability of Failure ($P_f$)**: Calculated as the failure ratio across $N$ iterations (typically 10,000 to 100,000).
+*   **Reliability Index ($\beta$)**: Derived as $\beta = -\Phi^{-1}(P_f)$.
+*   **Exact Confidence Intervals**: Uses the **Clopper-Pearson** method (Exact Binomial) to ensure statistical validity for research publication.
+*   **Sensitivity Analysis**: Ranks the impact of variables using **Spearman Rank Correlation**.
 
 ---
 
-## 🚀 Getting Started
+## 📊 Visualizations
+The system automatically generates high-impact graphics for thesis inclusion:
+*   **Reliability Heatmaps**: Cross-comparison of species, treatments, and fire scenarios.
+*   **Exact Stats Plots**: Probabilities of failure with 95% Confidence Interval error bars.
+*   **Failure Distributions**: Stacked analysis showing the dominant cause of collapse for each scenario.
+
+---
+
+## 💻 Technical Setup
 
 ### Prerequisites
-- Python 3.8+
-- libraries: `numpy`, `scipy`, `pandas`, `matplotlib`, `tqdm`
+*   Python 3.10+
+*   Dependencies: `numpy`, `scipy`, `pandas`, `matplotlib`, `tqdm`
 
 ### Execution
+Run the full scenario matrix (Standard & Parametric fires):
 ```bash
 python3 mcs_simulation.py
 ```
 
----
-
-## 📄 Documentation & References
-
-* **EN 1995-1-2:** Eurocode 5 - Design of timber structures - Part 1-2: General - Structural fire design.
-* **EN 1991-1-2:** Eurocode 1 - Actions on structures - Part 1-2: General actions - Actions on structures exposed to fire.
-* **Thesis Reference:** *Probabilistic Reliability Analysis of Nigerian Timber Roof Trusses in Fire*, Chapter 3: Materials and Methods.
+### Outputs
+*   `simulation_results.csv`: Comprehensive raw data.
+*   `*.png`: High-resolution (300 DPI) plots for documentation.
 
 ---
-*Created as part of the Timber Roof Truss Fire Reliability Analysis Study.*
+*Developed for the research of Fire Reliability of Timber Structural Elements.*
