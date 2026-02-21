@@ -1,0 +1,712 @@
+Chapter 3: Research Methodology
+3.1 Introduction
+This chapter presents the comprehensive methodology adopted to investigate the structural reliability of timber roof trusses under fire exposure. The research methodology integrates experimental characterization of material properties, fire performance testing, and probabilistic reliability analysis using Monte Carlo Simulation. The chapter is structured to provide a detailed account of the experimental procedures, analytical models, and computational frameworks employed to achieve the research objectives outlined in Section 1.4.
+The methodology focuses specifically on the identification, formulation, and probabilistic assessment of critical failure modes in timber truss members—namely the top chord, bottom chord, and web members—under standard and parametric fire exposures. Connections are excluded from this investigation as per the scope defined in Section 1.5.1.
+
+3.2 Research Design
+This study employs a sequential mixed-methods approach comprising three interconnected phases:
+Phase 1: Material Characterization
+Determination of physical properties (density, moisture content)
+Evaluation of mechanical properties (modulus of elasticity, modulus of rupture, compressive strength, tensile strength, shear strength)
+Strength classification according to EN 338
+Statistical distribution fitting for probabilistic modeling
+Phase 2: Fire Performance Assessment
+Experimental determination of charring rates under standard (ISO 834) and parametric fire exposures
+Evaluation of fire-retardant treatment efficacy
+Development of time-dependent degradation models
+Phase 3: Probabilistic Reliability Analysis
+Formulation of limit state functions for each failure mode
+Monte Carlo Simulation incorporating material and fire scenario variability
+Sensitivity analysis to identify critical parameters
+Validation against experimental observations
+
+3.3 Identification of Failure Modes in Timber Trusses
+3.3.1 Classification of Failure Modes
+Based on an extensive literature review and preliminary structural analysis, the failure modes investigated in this study are classified into three categories corresponding to the principal truss members:
+Table 3.1: Classification of Failure Modes by Member Type
+3.3.2 Theoretical Basis for Failure Mode Formulation
+The limit state design philosophy adopted in Eurocode 5 forms the theoretical foundation for failure mode formulation. For each failure mode, a limit state function is established in the general form:
+Eqn. 3.1: 
+where:
+ = performance function for failure mode 
+ = structural resistance for failure mode 
+ = load effect for failure mode 
+ = vector of random variables
+Failure occurs when: 
+Safe state when: 
+The probability of failure for each mode is:
+Eqn. 3.2: 
+
+3.4 Failure Mode 1: Top Chord Compression Buckling
+3.4.1 Description of Failure Mechanism
+The top chord of a timber truss is subjected to compressive forces from roof loads. Under fire exposure, charring reduces the cross-sectional area, increasing the slenderness ratio and reducing the buckling resistance. Compression buckling occurs when the critical buckling load is exceeded, leading to sudden lateral deflection and structural collapse.
+3.4.2 Limit State Formulation
+Eqn. 3.3: 
+Resistance Component:
+Eqn. 3.4: 
+Load Effect Component:
+Eqn. 3.5: 
+3.4.3 Variable Definitions
+Buckling Reduction Factor:
+Eqn. 3.6: 
+Eqn. 3.7: 
+Relative Slenderness:
+Eqn. 3.8: 
+Slenderness Ratio:
+Eqn. 3.9: 
+Radius of Gyration:
+Eqn. 3.10: 
+Effective Cross-Sectional Area (3-sided exposure):
+Eqn. 3.11: 
+Effective Char Depth:
+Eqn. 3.12: 
+where:
+ = design compressive strength parallel to grain under fire (N/mm²)
+ = imperfection factor for solid timber
+ = buckling length about y-axis (mm)
+ = fire load intensity (kN/m)
+ = total truss span (m)
+ = truss height at apex (m)
+ = roof pitch angle (degrees)
+ = charring rate (mm/min)
+ = fire exposure time (min)
+ = initial member width and depth (mm)
+3.4.4 Random Variables
+Eqn. 3.13: 
+
+3.5 Failure Mode 2: Top Chord Combined Bending and Compression
+3.5.1 Description of Failure Mechanism
+The top chord experiences both axial compression and bending moments due to:
+Eccentricity between nodes
+Continuous beam action over multiple supports
+Fire-induced neutral axis shift due to non-uniform charring
+The interaction between these stress components can lead to failure even when individual checks are satisfied.
+3.5.2 Limit State Formulation (EN 1995-1-1, Equation 6.23)
+Eqn. 3.14: 
+3.5.3 Variable Definitions
+Compressive Stress:
+Eqn. 3.15: 
+Bending Stress:
+Eqn. 3.16: 
+Bending Moment:
+Eqn. 3.17: 
+Fire-Induced Eccentricity:
+Eqn. 3.18: 
+Section Modulus:
+Eqn. 3.19: 
+Design Bending Strength Under Fire:
+Eqn. 3.20: 
+where:
+ = design axial force under fire (N)
+ = moment from continuous beam action (Nmm)
+ = modification factor for fire (unprotected)
+ = partial safety factor for fire
+3.5.4 Random Variables
+Eqn. 3.21: 
+
+3.6 Failure Mode 3: Bottom Chord Tension Rupture
+3.6.1 Description of Failure Mechanism
+The bottom chord is primarily subjected to tensile forces. Under fire exposure, cross-section reduction increases tensile stress. Failure occurs when the tensile stress exceeds the reduced tensile strength of the heated timber. This is typically a brittle failure mode with limited warning.
+3.6.2 Limit State Formulation
+Eqn. 3.22: 
+3.6.3 Variable Definitions
+Design Tension Strength Under Fire:
+Eqn. 3.23: 
+Effective Area (including fastener holes):
+Eqn. 3.24: 
+Hole Diameter:
+Eqn. 3.25: 
+Tensile Force from Truss Analysis:
+Eqn. 3.26:  (simplified)
+where:
+ = characteristic tensile strength parallel to grain (N/mm²)
+ = number of fastener holes in the critical section
+ = fastener diameter (mm)
+3.6.4 Random Variables
+Eqn. 3.27: 
+
+3.7 Failure Mode 4: Bottom Chord Bending
+3.7.1 Description of Failure Mechanism
+Although primarily in tension, the bottom chord experiences bending moments due to:
+Self-weight between nodes
+Eccentricity at connections
+Non-uniform heating causing differential thermal expansion
+3.7.2 Limit State Formulation
+Eqn. 3.28: 
+3.7.3 Variable Definitions
+Bending Moment:
+Eqn. 3.29: 
+Self-Weight:
+Eqn. 3.30: 
+Construction Eccentricity:
+Eqn. 3.31: 
+where:
+ = gravitational acceleration
+ = timber density (kg/m³)
+ = accidental eccentricity from construction tolerances (mm)
+3.7.4 Combined Tension and Bending
+For sections subjected to both tension and bending, the interaction must be checked:
+Eqn. 3.32: 
+3.7.5 Random Variables
+Eqn. 3.33: 
+
+3.8 Failure Mode 5: Bottom Chord Lateral Torsional Buckling
+3.8.1 Description of Failure Mechanism
+When the bottom chord is subjected to bending, the compression zone (top portion of the chord) can buckle laterally, causing the member to twist and deflect out of plane. This instability failure is particularly critical in fire as the reduced section increases slenderness.
+3.8.2 Limit State Formulation (EN 1995-1-1, §6.3.3)
+Eqn. 3.34: 
+3.8.3 Variable Definitions
+Critical Bending Stress:
+Eqn. 3.35: 
+Relative Slenderness for Bending:
+Eqn. 3.36: 
+Lateral Torsional Buckling Factor:
+Eqn. 3.37: 
+Effective Length for LTB:
+Eqn. 3.38: 
+where:
+ = factor depending on support conditions and load distribution
+ = member length between lateral restraints (mm)
+3.8.4 Random Variables
+Eqn. 3.39: 
+
+3.9 Failure Mode 6: Web Member Compression Buckling
+3.9.1 Description of Failure Mechanism
+Diagonal and vertical web members in compression are among the most slender elements in a truss. Under fire exposure, rapid cross-section reduction increases slenderness, making them susceptible to buckling failure. This can trigger progressive collapse of the entire truss system.
+3.9.2 Limit State Formulation
+Eqn. 3.40: 
+3.9.3 Variable Definitions
+Web Member Forces from Truss Analysis:
+For diagonal web members:
+Eqn. 3.41: 
+For vertical web members:
+Eqn. 3.42: 
+Buckling in Both Axes:
+Due to the slenderness of web members, buckling must be checked about both principal axes:
+Eqn. 3.43: 
+Effective Length Factors:
+Eqn. 3.44: 
+Eqn. 3.45: 
+Eqn. 3.46: 
+where:
+ = panel length along the chord (mm)
+ = angle of diagonal web relative to horizontal (degrees)
+ = end condition factor (0.7 for fixed ends, 1.0 for pinned ends)
+3.9.4 Random Variables
+Eqn. 3.47: 
+
+3.10 Failure Mode 7: Web Member Tension Rupture
+3.10.1 Description of Failure Mechanism
+Some diagonal web members are subjected to tensile forces. Similar to the bottom chord, failure occurs when the tensile stress exceeds the reduced tensile strength of the heated timber.
+3.10.2 Limit State Formulation
+Eqn. 3.48: 
+3.10.3 Variable Definitions
+Tensile Force in Diagonal Web:
+Eqn. 3.49:  (for tension diagonals)
+Effective Area (including possible fastener holes):
+Eqn. 3.50: 
+3.10.4 Random Variables
+Eqn. 3.51: 
+
+3.11 Failure Mode 8: Shear Failure
+3.11.1 Description of Failure Mechanism
+Shear failure is particularly critical in timber structures under fire because:
+Shear stresses are highest near supports where charring is often most severe
+Timber has relatively low shear strength parallel to grain
+Shear failure is brittle and can occur suddenly without warning
+All truss members (top chord, bottom chord, and web members) are susceptible to shear failure at their ends.
+3.11.2 Limit State Formulation
+Eqn. 3.52: 
+3.11.3 Variable Definitions
+Shear Force Distribution:
+Maximum shear occurs at supports:
+Eqn. 3.53: 
+This shear is distributed among members meeting at the support node:
+Eqn. 3.54: 
+Shear Stress in Rectangular Section:
+Eqn. 3.55: 
+Effective Area for Shear:
+Eqn. 3.56:  (for rectangular sections, shear area ≈ 2/3 of gross area)
+Design Shear Strength Under Fire:
+Eqn. 3.57: 
+where:
+ = number of members sharing shear at the support
+ = shear distribution factor (depends on member stiffness)
+ = characteristic shear strength (N/mm²)
+3.11.4 Shear Verification for Each Member
+Top Chord at Support:
+Eqn. 3.58: 
+Bottom Chord at Support:
+Eqn. 3.59: 
+Web Members at Support:
+Eqn. 3.60: 
+3.11.5 Random Variables
+Eqn. 3.61: 
+
+3.12 Summary of Limit State Functions
+Table 3.2: Summary of Limit State Functions for All Failure Modes
+
+3.13 Time-Dependent Degradation Modeling
+3.13.1 Char Depth Progression
+Eqn. 3.62:  for 
+Eqn. 3.63:  (effective char depth including zero-strength layer)
+3.13.2 Temperature Distribution in Cross-Section
+Eqn. 3.64: 
+where:
+ = depth from char front (mm)
+ = thermal diffusivity (mm²/min)
+ = ambient temperature (20°C)
+ = fire compartment temperature at time  (°C)
+3.13.3 Temperature-Dependent Strength Reduction (EN 1995-1-2)
+Eqn. 3.65: 
+3.13.4 Time-Dependent Resistance
+Eqn. 3.66: 
+
+3.14 Experimental Determination of Input Parameters
+3.14.1 Material Properties Testing
+The mechanical properties required for each failure mode are determined experimentally following EN 408 and EN 384:
+Table 3.3: Material Properties and Test Methods
+3.14.2 Charring Rate Determination
+Charring rates are determined from furnace tests under three fire scenarios:
+Eqn. 3.67: 
+Table 3.4: Fire Test Scenarios for Charring Rate Determination
+
+3.15 Probabilistic Framework for Failure Mode Analysis
+3.15.1 Random Variable Distributions
+Based on experimental characterization, the following distributions are assigned:
+Eqn. 3.68: 
+Eqn. 3.69: 
+Eqn. 3.70: 
+Eqn. 3.71: 
+Eqn. 3.72: 
+Eqn. 3.73: 
+Eqn. 3.74: 
+Eqn. 3.75: 
+Eqn. 3.76: 
+Eqn. 3.77: 
+3.15.2 Correlation Structure (Based on JCSS Probabilistic Model Code)
+Eqn. 3.78: 
+Eqn. 3.79: 
+Eqn. 3.80: 
+Eqn. 3.81:  (denser wood chars slower)
+Eqn. 3.82:  (wetter wood chars slower initially)
+3.15.3 Monte Carlo Simulation Algorithm for Multiple Failure Modes
+Step 1: Initialize
+ (number of simulations)
+ for  to  (failure counters)
+ to  min (time steps)
+Step 2: For each simulation  to :
+Sample random variables  from distributions in Eqs. 3.68-3.77
+Apply correlation structure (Eqs. 3.78-3.82)
+For each time step :
+Calculate 
+Update , ,  for each member
+Calculate temperature  from fire curve
+Determine  from Eqn. 3.65
+For each failure mode  to :
+Calculate  using appropriate equations (Table 3.2)
+Calculate  from load effects
+Evaluate 
+If :
+Increment 
+Record time to failure 
+Break time loop for this mode
+Step 3: Compute probabilities:
+Eqn. 3.83: 
+Step 4: System probability of failure (series system):
+Eqn. 3.84: 
+Step 5: Reliability indices:
+Eqn. 3.85: 
+Eqn. 3.86: 
+
+3.16 Sensitivity Analysis
+To identify the most critical parameters influencing each failure mode, Sobol' sensitivity indices are calculated:
+Eqn. 3.87: 
+where:
+ = total sensitivity index for variable 
+ = vector of all variables except 
+ = total variance of the limit state function
+Variables with highest  are identified as critical for each failure mode.
+
+3.17 Validation Framework
+3.17.1 Validation Against Experimental Charring Rates
+Eqn. 3.88: 
+3.17.2 Validation of Failure Probabilities
+Eqn. 3.89: 
+where  is estimated from small-scale fire tests.
+3.17.3 Convergence Criteria
+Eqn. 3.90:  for 
+
+3.18 Summary
+This chapter has presented a comprehensive methodology for investigating eight distinct failure modes in timber roof trusses under fire exposure:
+Top Chord Compression Buckling (FM1)
+Top Chord Combined Bending and Compression (FM2)
+Bottom Chord Tension Rupture (FM3)
+Bottom Chord Bending (FM4)
+Bottom Chord Lateral Torsional Buckling (FM5)
+Web Member Compression Buckling (FM6)
+Web Member Tension Rupture (FM7)
+Shear Failure in All Members (FM8)
+For each failure mode, explicit limit state functions have been formulated (Eqns. 3.3-3.61), random variables defined (Eqns. 3.68-3.77), and correlation structures established (Eqns. 3.78-3.82). The Monte Carlo simulation framework (Section 3.15.3) enables probabilistic assessment of failure probabilities and reliability indices for each mode, while sensitivity analysis (Section 3.16) identifies the most critical parameters governing truss performance under fire.
+The methodology integrates experimental data from material characterization and fire tests with advanced probabilistic modeling, providing a robust framework for evaluating the fire reliability of Nigerian timber species (Anogeissus leiocarpa and Erythrophleum suaveolens) in roof truss applications.
+
+
+
+Chapter 4: EC5 Deterministic design
+4.1 Introduction
+This chapter presents the results of the deterministic Eurocode 5 fire design calculations for a timber roof truss with a span of 6 m. The analysis follows the methodology established in Chapter 3 and utilizes the experimentally determined material properties for Erythrophleum suaveolens (R) and Anogeissus leiocarpa (W) from Section 4.1. The calculations verify the structural performance of all truss members—top chord, bottom chord, and web members—under standard fire exposure for a required fire resistance of R30 (30 minutes). Connections are excluded from this analysis as per the scope defined in Section 1.5.1.
+
+4.2 Design Basis and Assumptions
+Standard: EN 1995-1-2:2004 (Eurocode 5: Design of timber structures – Part 1-2: Structural fire design)
+Fire Exposure: Standard fire curve (ISO 834) according to EN 1363-1
+Fire Resistance Requirement: R30 (30 minutes load-bearing capacity)
+Truss Configuration: Double-Howe truss, span L = 6 m, height h = L/6 = 1.0 m
+Reference: Experimental data for Erythrophleum suaveolens (R) and Anogeissus leiocarpa (W) from Section 4.1
+
+4.3 Input Parameters
+4.3.1 Material Properties (from experimental data)
+Table 4.1: Experimentally Determined Bending Strength and MOE
+4.3.2 Derived Reference Properties from Experimental Data
+Based on the experimentally determined bending strength values, the complete sets of characteristic material properties for both species were derived using established correlations from EN 338 and the JCSS Probabilistic Model Code.
+Table 4.2: Derived Reference Properties for Anogeissus leiocarpa (W)
+Table 4.3: Derived Reference Properties for Erythrophleum suaveolens (R)
+4.3.3 Charring Rates (from experimental data – Section 4.2)
+Table 4.4: Charring Rates for Selected Timber Species
+Selected for baseline calculation: Untreated E. suaveolens with  mm/min
+4.3.4 Geometric Properties
+Table 4.5: Initial Member Dimensions
+4.3.5 Loading (Fire Situation – Accidental Combination per EN 1990)
+Eqn. 4.1: 
+Table 4.6: Load Parameters
+4.3.6 Partial Safety Factors for Fire (EN 1995-1-2, §2.3)
+Table 4.7: Partial Safety Factors
+
+4.4 Charring Calculations (EN 1995-1-2, §3.4)
+4.4.1 General Charring Formulation
+Eqn. 4.2:  (char depth)
+Eqn. 4.3:  (effective char depth)
+where:
+ = notional charring rate (mm/min)
+ = fire exposure time (min)
+ mm (zero-strength layer)
+ for  minutes
+4.4.2 Char Depth After 30 Minutes
+For untreated E. suaveolens ( mm/min):
+Eqn. 4.4:  mm
+Eqn. 4.5:  mm
+4.4.3 Effective Cross-Section Dimensions by Member Type
+4.4.3.1 Top Chord (3-sided exposure)
+Eqn. 4.6:  mm
+Eqn. 4.7:  mm
+4.4.3.2 Bottom Chord (3-sided exposure)
+Eqn. 4.8:  mm
+Eqn. 4.9:  mm
+4.4.3.3 Web Members (3-sided exposure)
+For diagonal web with initial dimensions 50 mm × 100 mm:
+Eqn. 4.10:  mm → Not acceptable!
+Observation: The web member would be completely charred through at 30 minutes. For R30, web members require larger initial dimensions or fire protection.
+Revised web dimensions for R30: Increase to  mm,  mm
+Eqn. 4.11:  mm
+Eqn. 4.12:  mm
+4.4.4 Summary of Effective Cross-Sections (t = 30 min)
+Table 4.8: Effective Cross-Sectional Properties at 30 Minutes
+
+4.5 Section Properties After Charring
+4.5.1 General Formulations
+Eqn. 4.13:  (area)
+Eqn. 4.14:  (moment of inertia about y-axis)
+Eqn. 4.15:  (moment of inertia about z-axis)
+Eqn. 4.16:  (radius of gyration about y-axis)
+Eqn. 4.17:  (radius of gyration about z-axis)
+Eqn. 4.18:  (section modulus about y-axis)
+Eqn. 4.19:  (section modulus about z-axis)
+4.5.2 Calculated Section Properties at t = 30 min
+Table 4.9: Section Properties After 30 Minutes of Fire Exposure
+
+4.6 Internal Forces from Truss Analysis
+From structural analysis under fire loading ( kN/m) for a 6 m span truss:
+Table 4.10: Member Forces at t = 0 and t = 30 min
+¹Forces reduced due to stiffness loss in heated members (simplified 15% reduction).
+
+4.7 Design Strength Under Fire
+The design strength of timber under fire conditions is determined according to EN 1995-1-2, §2.3. For the accidental fire situation, the partial safety factor for material properties  is taken as 1.0, and the modification factor for fire  is 1.0 for unprotected members. Therefore, the design strength in fire equals the characteristic strength:
+Eqn. 4.20: 
+4.7.1 Material Strengths for Verification
+For the deterministic fire design calculations, the characteristic strengths derived from experimental data in Tables 4.2 and 4.3 are adopted as the design strengths under fire conditions. A summary of the key strength properties for verification of each failure mode is provided in Table 4.11.
+Table 4.11: Design Strengths Under Fire
+
+4.8 FAILURE MODE 1: TOP CHORD – COMPRESSION BUCKLING
+4.8.1 Buckling About Strong Axis (y-y) for E. suaveolens (R)
+Slenderness Ratio:
+Eqn. 4.21: 
+Relative Slenderness:
+Eqn. 4.22: 
+For E. suaveolens with  N/mm² and  N/mm²:
+Eqn. 4.23: 
+Instability Factor:
+Eqn. 4.24: 
+where  for solid timber
+Eqn. 4.25: 
+Eqn. 4.26: 
+4.8.2 Buckling About Weak Axis (z-z) for E. suaveolens (R)
+Slenderness Ratio:
+Eqn. 4.27: 
+Relative Slenderness:
+Eqn. 4.28: 
+Since , the member is extremely slender about the z-axis. Lateral restraint is required at intervals to prevent buckling about the weak axis.
+Assumption: Lateral restraints provided at 750 mm spacing
+Eqn. 4.29: 
+Eqn. 4.30: 
+Eqn. 4.31: 
+Eqn. 4.32: 
+4.8.3 Buckling Verification for E. suaveolens (R)
+Compressive Stress:
+Eqn. 4.33:  N/mm²
+Verification (strong axis buckling):
+Eqn. 4.34:  ✓ PASS
+Verification (weak axis buckling with restraints):
+Eqn. 4.35:  ✓ PASS
+Conclusion: The top chord satisfies both strong and weak axis buckling requirements with lateral restraints at 750 mm spacing. The utilization ratio of 0.66 for weak-axis buckling indicates adequate performance.
+4.8.4 Buckling Verification for A. leiocarpa (W)
+For A. leiocarpa with  N/mm² and  N/mm²:
+Strong axis:
+Eqn. 4.36: 
+Eqn. 4.37: 
+Eqn. 4.38: 
+Eqn. 4.39:  ✓ PASS
+Weak axis (with restraints at 750 mm):
+Eqn. 4.40: 
+Eqn. 4.41: 
+Eqn. 4.42: 
+Eqn. 4.43:  ✗ FAIL
+Conclusion for A. leiocarpa: The top chord fails in weak-axis buckling with utilization 1.17, requiring either closer lateral restraint spacing or increased member dimensions.
+
+4.9 FAILURE MODE 2: BOTTOM CHORD – TENSION RUPTURE
+4.9.1 Tension Verification for E. suaveolens (R)
+Eqn. 4.44:  N/mm²
+Eqn. 4.45:  ✓ PASS
+4.9.2 Tension with Bending (due to self-weight)
+Bending moment due to self-weight:
+Eqn. 4.46: 
+where  kN/m³ (density × gravity)
+Eqn. 4.47:  Nm =  kNm
+Bending stress:
+Eqn. 4.48:  N/mm²
+Combined tension and bending (EN 1995-1-1, Eq. 6.17):
+Eqn. 4.49: 
+Eqn. 4.50:  ✓ PASS
+4.9.3 Tension Verification for A. leiocarpa (W)
+Eqn. 4.51:  ✓ PASS
+Combined tension and bending:
+Eqn. 4.52:  ✓ PASS
+Conclusion: Both species satisfy tension requirements with utilization ratios of 0.26 for R and 0.44 for W, indicating adequate capacity.
+
+4.10 FAILURE MODE 3: DIAGONAL WEB – COMPRESSION BUCKLING
+4.10.1 Diagonal Web in Compression for E. suaveolens (R)
+Member properties:
+Length  mm
+Effective section:  mm
+ mm²
+ mm
+ mm
+Compression force  kN
+4.10.2 Buckling About Strong Axis for E. suaveolens (R)
+Eqn. 4.53: 
+Eqn. 4.54: 
+Eqn. 4.55: 
+Eqn. 4.56: 
+4.10.3 Buckling About Weak Axis for E. suaveolens (R) (with restraint)
+Assumption: Lateral restraint at mid-length ( mm)
+Eqn. 4.57: 
+Eqn. 4.58: 
+Eqn. 4.59: 
+Eqn. 4.60: 
+4.10.4 Compression Verification for E. suaveolens (R)
+Compressive Stress:
+Eqn. 4.61:  N/mm²
+Strong axis verification:
+Eqn. 4.62:  ✓ PASS
+Weak axis verification (with restraint):
+Eqn. 4.63:  ✓ PASS
+4.10.5 Compression Verification for A. leiocarpa (W)
+For A. leiocarpa with  N/mm² and  N/mm²:
+Strong axis:
+Eqn. 4.64: 
+Eqn. 4.65: 
+Eqn. 4.66: 
+Eqn. 4.67:  ✓ PASS
+Weak axis (with restraint at mid-length):
+Eqn. 4.68: 
+Eqn. 4.69: 
+Eqn. 4.70: 
+Eqn. 4.71:  ✗ FAIL
+Conclusion: E. suaveolens satisfies buckling requirements (max utilization 0.66), while A. leiocarpa fails in weak-axis buckling (utilization 1.21), requiring either closer restraint spacing or increased member dimensions.
+
+4.11 FAILURE MODE 4: DIAGONAL WEB – TENSION RUPTURE
+4.11.1 Diagonal Web in Tension for E. suaveolens (R)
+Eqn. 4.72:  N/mm²
+Eqn. 4.73:  ✓ PASS
+4.11.2 Diagonal Web in Tension for A. leiocarpa (W)
+Eqn. 4.74:  ✓ PASS
+Conclusion: Both species satisfy tension requirements with very low utilization ratios (0.17 for R, 0.29 for W).
+
+4.12 FAILURE MODE 5: VERTICAL WEB – COMPRESSION BUCKLING
+4.12.1 Vertical Web Properties for E. suaveolens (R)
+Length  mm
+Effective section:  mm
+ mm²
+ mm
+ mm
+Compression force  kN
+4.12.2 Buckling About Strong Axis for E. suaveolens (R)
+Eqn. 4.75: 
+Eqn. 4.76: 
+Eqn. 4.77: 
+Eqn. 4.78: 
+4.12.3 Buckling About Weak Axis for E. suaveolens (R) (with restraint at mid-height)
+Assumption: Lateral restraint at mid-height ( mm)
+Eqn. 4.79: 
+Eqn. 4.80: 
+Eqn. 4.81: 
+Eqn. 4.82: 
+4.12.4 Compression Verification for E. suaveolens (R)
+Compressive Stress:
+Eqn. 4.83:  N/mm²
+Strong axis verification:
+Eqn. 4.84:  ✓ PASS
+Weak axis verification (with restraint):
+Eqn. 4.85:  ✓ PASS
+4.12.5 Compression Verification for A. leiocarpa (W)
+For A. leiocarpa with  N/mm² and  N/mm²:
+Strong axis:
+Eqn. 4.86: 
+Eqn. 4.87: 
+Eqn. 4.88: 
+Eqn. 4.89:  ✓ PASS
+Weak axis (with restraint at mid-height):
+Eqn. 4.90: 
+Eqn. 4.91: 
+Eqn. 4.92: 
+Eqn. 4.93:  ✓ PASS
+Conclusion: Both species satisfy vertical web buckling requirements with utilization ratios of 0.23 for R and 0.41 for W.
+
+4.13 FAILURE MODE 6: BENDING FAILURE
+4.13.1 Bending Moment in Chords
+Maximum moment in top chord between nodes (assuming continuous chord):
+Eqn. 4.94:  (approximate for continuous beam)
+Eqn. 4.95:  kNm =  Nmm
+4.13.2 Bending Stress
+Eqn. 4.96:  N/mm²
+4.13.3 Bending Verification for E. suaveolens (R)
+Eqn. 4.97:  ✓ PASS
+4.13.4 Bending Verification for A. leiocarpa (W)
+Eqn. 4.98:  ✓ PASS
+4.13.5 Lateral Torsional Buckling for E. suaveolens (R)
+For bottom chord in bending (compression flange unbraced):
+Eqn. 4.99: 
+where 
+Eqn. 4.100:  N/mm²
+Eqn. 4.101: 
+Eqn. 4.102:  (for )
+Eqn. 4.103:  ✗ FAIL (marginally)
+Note: The lateral torsional buckling check shows marginal failure (1.02) for the unbraced bottom chord. This can be addressed by providing nominal lateral restraint.
+With lateral restraint at mid-span ( mm):
+Eqn. 4.104:  N/mm²
+Eqn. 4.105: 
+Eqn. 4.106:  (for )
+Eqn. 4.107:  ✓ PASS
+4.13.6 Lateral Torsional Buckling for A. leiocarpa (W)
+For A. leiocarpa with  N/mm² and  N/mm²:
+Without restraint:
+Eqn. 4.108:  N/mm²
+Eqn. 4.109: 
+Eqn. 4.110: 
+Eqn. 4.111:  ✗ FAIL
+With lateral restraint at mid-span:
+Eqn. 4.112:  N/mm²
+Eqn. 4.113: 
+Eqn. 4.114:  (for )
+Eqn. 4.115:  ✓ PASS (marginally)
+Conclusion: Both species require lateral restraint at mid-span to satisfy lateral torsional buckling requirements. With restraint, utilization ratios are 0.52 for R and 1.00 for W.
+
+4.14 FAILURE MODE 7: COMBINED BENDING AND AXIAL COMPRESSION (TOP CHORD)
+4.14.1 Interaction for E. suaveolens (R)
+From previous calculations:
+ N/mm²
+ N/mm²
+
+ N/mm²
+ N/mm²
+Eqn. 4.116: 
+Eqn. 4.117: 
+Eqn. 4.118:  ✓ PASS
+4.14.2 Interaction for A. leiocarpa (W)
+For A. leiocarpa with  N/mm²,  N/mm², and :
+Eqn. 4.119: 
+Eqn. 4.120:  ✓ PASS
+Conclusion: Both species satisfy combined stress requirements, with utilization ratios of 0.45 for R and 0.97 for W.
+
+4.15 FAILURE MODE 8: SHEAR FAILURE
+4.15.1 Shear Force Distribution
+Maximum shear occurs at supports for the 6 m span:
+Eqn. 4.121:  kN
+4.15.2 Shear in Top Chord at Support (if acting alone)
+Eqn. 4.122:  (for rectangular sections)
+Eqn. 4.123:  N/mm²
+Eqn. 4.124: For E. suaveolens:  ✗ FAIL if alone
+Eqn. 4.125: For A. leiocarpa:  ✗ FAIL if alone
+Note: This indicates members would fail in shear if they carried the entire shear force. In reality, shear is distributed to multiple members at the support node.
+4.15.3 Refined Shear Verification – Force Distribution at Support Node
+At the support, shear is shared by:
+Bottom chord (tension)
+Vertical web (compression)
+End diagonal (compression)
+Force in vertical web at support:
+Eqn. 4.126:  kN (simplified distribution)
+Shear in vertical web for E. suaveolens (R):
+Eqn. 4.127:  N/mm²
+Eqn. 4.128:  ✗ FAIL
+Shear in vertical web for A. leiocarpa (W):
+Eqn. 4.129:  ✗ FAIL
+4.15.4 Increased Web Dimensions for Shear
+Since both species fail in shear with the 75 × 100 mm web members, increased dimensions are required.
+Try web members: 75 mm × 150 mm
+For E. suaveolens (R):
+Eqn. 4.130:  mm
+Eqn. 4.131:  mm²
+Eqn. 4.132:  N/mm²
+Eqn. 4.133:  ✓ PASS
+For A. leiocarpa (W):
+Eqn. 4.134:  ✗ FAIL
+4.15.5 Further Increase for A. leiocarpa (W)
+Try web members: 100 mm × 150 mm
+Eqn. 4.135:  mm
+Eqn. 4.136:  mm
+Eqn. 4.137:  mm²
+Eqn. 4.138:  N/mm²
+Eqn. 4.139:  ✓ PASS
+4.15.6 Shear Verification Summary
+Table 4.12: Shear Verification for Web Members
+Conclusion: E. suaveolens requires web members of 75 × 150 mm to satisfy shear requirements. A. leiocarpa requires larger web members of 100 × 150 mm due to its lower shear strength.
+
+4.16 Summary of Verifications for 6 m Span
+Table 4.13: Failure Mode Summary for E. suaveolens (R) at R30 (6 m Span)
+Table 4.14: Failure Mode Summary for A. leiocarpa (W) at R30 (6 m Span)
+
+4.17 Design Recommendations for 6 m Span
+4.17.1 Member Sizing for R30 Compliance
+Table 4.15: Recommended Member Sizes for R30 (6 m Span)
+4.17.2 Required Lateral Restraints
+Table 4.16: Lateral Restraint Requirements for R30
+4.17.3 Critical Observations for 6 m Span
+Shear (FM8) governs member sizing for both species, requiring increased web dimensions.
+E. suaveolens (R) performs adequately with 75 × 150 mm web members and lateral restraints at 750 mm spacing.
+A. leiocarpa (W) requires larger web members (100 × 150 mm) due to its lower shear strength (1.52 N/mm²).
+Weak-axis buckling (FM1, FM3) is critical for A. leiocarpa, requiring either closer lateral restraint spacing or increased member dimensions.
+Lateral torsional buckling (FM6) is satisfied for both species with mid-span restraint of the bottom chord.
+The governing fire resistance time for the 6 m span truss with appropriately sized members exceeds the R30 requirement.
+
+4.18 Conclusion
+The deterministic Eurocode 5 fire design for a 6 m span timber truss demonstrates that with appropriate member sizing and lateral restraints, the truss achieves the required R30 fire resistance. All eight failure modes (FM1 through FM8) have been verified using experimentally derived material properties for both Nigerian hardwood species.
+Erythrophleum suaveolens (R) performs satisfactorily with web members of 75 × 150 mm and lateral restraints at 750 mm spacing. Anogeissus leiocarpa (W) requires larger web members of 100 × 150 mm and closer lateral restraint spacing due to its lower characteristic strengths, particularly in shear (1.52 N/mm²) and compression (10.2 N/mm²).
+Shear (FM8) is the most critical failure mode governing member sizing for both species. These findings confirm that for shorter spans, timber trusses can achieve adequate fire resistance without extensive fire protection, provided that member sizing and lateral restraint requirements are properly addressed based on species-specific material properties.

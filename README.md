@@ -32,11 +32,16 @@ Unlike simplified models that use a fixed zero-strength layer, this framework us
 
 ## 🏗 Structural Reliability Engine
 
-The framework evaluates three critical **Limit State Functions (LSF)** every minute:
+The framework evaluates 8 critical **Limit State Functions (LSF)** across appropriate structural members (Top Chord, Bottom Chord, and Webs) every minute:
 
-1.  **Bending (`Bending`)**: Evaluates the strength-weighted section modulus against design moments.
-2.  **Buckling (`Buckling`)**: Assesses stability using the Euler critical load and relative slenderness ($\lambda_{fi}$) of the heated residual section.
-3.  **Shear (`Shear`)**: Checks local resistance at supports as the cross-section area is reduced.
+1.  **Pure Buckling (FM1, FM6)**: Assesses stability using the Euler critical load and relative slenderness ($\lambda_{fi}$) of the heated residual section.
+2.  **Combined Bending & Axial Compression (FM2)**: Evaluates interaction between compressive and flexural stresses using instability factors.
+3.  **Tension Rupture (FM3, FM7)**: Verifies the remaining effective tension area against axial load (Bottom Chord and Tension Webs).
+4.  **Pure Bending (FM4)**: Evaluates the strength-weighted section modulus against design moments.
+5.  **Combined Tension & Bending (FM4a)**: Interaction check for combined tensile and flexural stresses in the Bottom Chord.
+6.  **Lateral Torsional Buckling (FM5)**: Assesses out-of-plane instability on the compression flange of members under bending.
+7.  **Shear (FM8)**: Checks local resistance at supports as the cross-section area is reduced.
+8.  **Burnout**: Identifies members that have completely charred away ($A_{ef} \le 0$).
 
 ### Results & Statistics
 *   **Probability of Failure ($P_f$)**: Calculated as the failure ratio across $N$ iterations (typically 10,000 to 100,000).
