@@ -13,9 +13,14 @@ SPECIES_DATA = {
     'W': {  # Anogeissus leiocarpa (White Wood)
         'name': 'Anogeissus leiocarpa',
         'rho': {'dist': 'normal', 'mean': 809.0, 'std': 72.0},  # kg/m^3
-        'fm': {'dist': 'gumbel', 'mean': 22.7, 'std': 5.7},     # N/mm^2
-        'fc0': {'dist': 'normal', 'mean': 17.4, 'std': 4.4},    # Compression (Derived from char=10.2)
-        'fv': {'dist': 'normal', 'mean': 2.27, 'std': 0.57},    # Shear strength (Derived as 0.1*fm)
+        # Eqn 3.68: f_m,k ~ Lognormal. mean=22.7 (Table 4.1), COV~25%
+        'fm': {'dist': 'lognormal', 'mean': 22.7, 'std': 5.7},
+        # Eqn 3.69: f_c,0,k ~ Lognormal. Characteristic = 0.45*fm,k = 0.45*22.7 = 10.2 N/mm^2 (Table 4.2)
+        # mean/std chosen so Lognormal 5th percentile ≈ 10.2
+        'fc0': {'dist': 'lognormal', 'mean': 17.4, 'std': 4.4},
+        # Eqn 3.71: f_v,k ~ Lognormal. Characteristic = 0.067*fm,k = 0.067*22.7 = 1.52 N/mm^2 (Table 4.2)
+        # mean=2.35, std=0.59 → Lognormal 5th percentile = 1.52 (corrected from 0.1*fm)
+        'fv': {'dist': 'lognormal', 'mean': 2.35, 'std': 0.59},
         'E': {'dist': 'lognormal', 'mean': 4612.0, 'std': 1247.0},
         'MC': {'dist': 'normal', 'mean': 0.1525, 'std': 0.0425}, 
         'thermal': {'lambda': 0.13, 'cp': 1500}, # W/mK, J/kgK
@@ -26,10 +31,15 @@ SPECIES_DATA = {
     },
     'R': {  # Erythrophleum suaveolens (Red Wood)
         'name': 'Erythrophleum suaveolens',
-        'rho': {'dist': 'normal', 'mean': 745.0, 'std': 129.0}, 
-        'fm': {'dist': 'normal', 'mean': 38.9, 'std': 9.3},     
-        'fc0': {'dist': 'normal', 'mean': 50.4, 'std': 12.0},   # Compression (Derived from char=30.6)
-        'fv': {'dist': 'normal', 'mean': 3.89, 'std': 0.93},    # Shear strength (Derived as 0.1*fm)
+        'rho': {'dist': 'normal', 'mean': 745.0, 'std': 129.0},
+        # Eqn 3.68: f_m,k ~ Lognormal. mean=38.9 (Table 4.1), COV~24%
+        'fm': {'dist': 'lognormal', 'mean': 38.9, 'std': 9.3},
+        # Eqn 3.69: f_c,0,k ~ Lognormal. Characteristic = 0.45*fm,k = 0.45*38.9 = 17.5 N/mm^2 (Table 4.3)
+        # mean=27.1, std=6.8 → Lognormal 5th percentile = 17.5 (corrected from wrong 30.7)
+        'fc0': {'dist': 'lognormal', 'mean': 27.1, 'std': 6.8},
+        # Eqn 3.71: f_v,k ~ Lognormal. Characteristic = 0.067*fm,k = 0.067*38.9 = 2.61 N/mm^2 (Table 4.3)
+        # mean=4.03, std=1.01 → Lognormal 5th percentile = 2.61 (corrected from 0.1*fm)
+        'fv': {'dist': 'lognormal', 'mean': 4.03, 'std': 1.01},
         'E': {'dist': 'normal', 'mean': 8935.0, 'std': 1591.0},  
         'MC': {'dist': 'normal', 'mean': 0.1958, 'std': 0.0915}, 
         'thermal': {'lambda': 0.16, 'cp': 1600},
@@ -277,6 +287,8 @@ def hietaniemi_charring_rate(t, species_key, scenario_key, w_sampled, rho_sample
     numerator = f_o2 * C * q_kw / rho_sampled
     denominator = (p + rho_0) * (A + B * w_sampled)
     
+    if denominator <= 0:
+        return 0.0
     # Conversion to mm/min with exponential decay 
     beta_H = (numerator / denominator) * np.exp(-t / tau) * 1000
     
@@ -323,10 +335,11 @@ def calculate_internal_temperature(x, t, T_fire, T_init, species_key):
 
     # 2. t must be in seconds for alpha (m^2/s)
     t_seconds = t * 60
+    x_m = x / 1000.0 
 
     # 3. Exponential decay formula from your methodology
     # x is the distance from the heat source/char line
-    T = T_init + (T_fire - T_init) * np.exp(-x / np.sqrt(4 * alpha * t_seconds))
+    T = T_init + (T_fire - T_init) * np.exp(-x_m / np.sqrt(4 * alpha * t_seconds))
 
     return min(T, 300) # Cap at pyrolysis temperature for stiffness calculations
 
@@ -377,6 +390,7 @@ def get_effective_section_integrated(b0, h0, d_char, species_key, t, T_fire):
     layer_thickness = h_residual / n_layers
     
     A_eff = 0
+    sum_kE_dA = 0.0
     I_eff_stiffness = 0
     I_eff_strength = 0
     stat_moment_E = 0 
@@ -394,6 +408,7 @@ def get_effective_section_integrated(b0, h0, d_char, species_key, t, T_fire):
         A_eff += dA * k_mod
         
         stat_moment_E += (dA * k_E) * x_dist
+        sum_kE_dA      += dA * k_E
         stat_moment_mod += (dA * k_mod) * x_dist
         layer_data.append((x_dist, dA, k_E, k_mod))
 
@@ -401,7 +416,6 @@ def get_effective_section_integrated(b0, h0, d_char, species_key, t, T_fire):
 
     # Section properties depends on the property being analyzed
     # Stiffness centroid (for buckling/deflection)
-    sum_kE_dA = sum(d[1] * d[2] for d in layer_data)
     y_bar_fi_E = stat_moment_E / sum_kE_dA if sum_kE_dA > 0 else h_residual / 2
     
     # Strength centroid (for bending)
@@ -534,7 +548,7 @@ def buckling_limit_state(N_Ed, f_c0_k, E_05_fi, I_ef, A_ef, theta_R, L_cr=2000):
         k_c_fi = 0.0
     else:
         k_c_fi = 1.0 / denom
-        k_c_fi = min(k_c_fi, 1.0)  # Cap at 1.0
+    k_c_fi = min(k_c_fi, 1.0)  # Cap at 1.0
     
     # 5. Calculate Resistance N_b,Rd,fi
     # Note: A_ef is already integrated with k_mod strength reduction
@@ -601,9 +615,8 @@ def sample_variable(params):
         beta = std * np.sqrt(6) / np.pi
         mu = mean - np.euler_gamma * beta
         return np.random.gumbel(mu, beta)
-    elif params['dist'] == 'static':
+    else:
         return params['mean']
-    return params['mean']
 
 def sample_uncertainty(mean=1.0, cov=0.1):
     """
@@ -612,6 +625,19 @@ def sample_uncertainty(mean=1.0, cov=0.1):
     sigma = np.sqrt(np.log(1 + cov**2))
     mu = np.log(mean) - 0.5 * sigma**2
     return np.random.lognormal(mu, sigma)
+
+# Compute Characteristic values for Buckling (once per species)
+def get_k_vals(p):
+    if p['dist'] == 'gumbel':
+        beta = p['std'] * np.sqrt(6) / np.pi
+        mu = p['mean'] - np.euler_gamma * beta
+        return mu - beta * np.log(-np.log(0.05))
+    elif p['dist'] == 'lognormal':
+        sigma = np.sqrt(np.log(1 + (p['std']/p['mean'])**2))
+        mu = np.log(p['mean']) - 0.5 * sigma**2
+        return np.exp(mu - 1.645 * sigma)
+    else: # normal
+        return p['mean'] - 1.645 * p['std']
 
 def run_simulation(N=1000, species_key='W', scenario_key='FTI', treatment='untreated', truss_type='Double-Howe', sensitivity=True):
     """
@@ -628,28 +654,16 @@ def run_simulation(N=1000, species_key='W', scenario_key='FTI', treatment='untre
     results = []
     samples = []
     
-    G_params = {'mean': 2500.0, 'std': 250.0} 
-    Q_params = {'mean': 1800.0, 'std': 270.0} 
-    
-    # Compute Characteristic values for Buckling (once per species)
-    def get_k_vals(p):
-        if p['dist'] == 'gumbel':
-            beta = p['std'] * np.sqrt(6) / np.pi
-            mu = p['mean'] - np.euler_gamma * beta
-            return mu - beta * np.log(-np.log(0.05))
-        elif p['dist'] == 'lognormal':
-            sigma = np.sqrt(np.log(1 + (p['std']/p['mean'])**2))
-            mu = np.log(p['mean']) - 0.5 * sigma**2
-            return np.exp(mu - 1.645 * sigma)
-        else: # normal
-            return p['mean'] - 1.645 * p['std']
+    G_params = {'dist': 'normal', 'mean': 2500.0, 'std': 250.0}
+    Q_params = {'dist': 'gumbel', 'mean': 1800.0, 'std': 270.0}
             
     f_c0_k = get_k_vals(species['fc0'])
     f_m_k = get_k_vals(species['fm'])
-    E_05_fi = get_k_vals(species['E']) * 1.25 # Fire stiffness adjustment
+    # E_0,05 per Eqn 3.72 (5th percentile of MOE). No upward adjustment is specified in the methodology.
+    E_05_fi = get_k_vals(species['E'])
     
     print(f"Running MCS: {N} iter | {species['name']} | {truss_type} | {treatment}...")
-    
+    print(f"  Characteristic: fc0,k={f_c0_k:.2f} N/mm² | E0,05={E_05_fi:.0f} N/mm²")
     # Pre-calculate Lognormal params for Charring Rate to save time inside loop
     # Map 'borax' to 'treated' for data lookup
     cond = 'treated' if treatment == 'borax' else 'untreated'
@@ -683,8 +697,7 @@ def run_simulation(N=1000, species_key='W', scenario_key='FTI', treatment='untre
         
         # 4. Sample Loads (Structural Analysis Logic)
         G_load = np.random.normal(G_params['mean'], G_params['std'])
-        Q_load = sample_variable({'dist': 'gumbel', 'mean': Q_params['mean'], 'std': Q_params['std']})
-        
+        Q_load  = sample_variable(Q_params)
         # Fire load combination (Eurocode: G + psi_2,1 * Q) 
         # theta_E is model uncertainty for the load effect.
         # Combined load result converted to kN/m
@@ -706,6 +719,10 @@ def run_simulation(N=1000, species_key='W', scenario_key='FTI', treatment='untre
                 beta_eff = combined_charring_rate(t, species_key, scenario_key, rho, MC, beta_exp_sampled, theta_model)
                 char_depth += beta_eff 
             
+            if char_depth > 0.0:
+                d_ef = char_depth + 7.0
+            else:
+                d_ef = 0.0
             # B. TRUSS-AWARE STRUCTURAL CHECK 
             # Iterate through critical members defined in TRUSS_CONFIGS
             for member_name, props in truss['members'].items():
@@ -727,7 +744,10 @@ def run_simulation(N=1000, species_key='W', scenario_key='FTI', treatment='untre
                 
                 # Check if member is completely charred
                 if A_ef <= 0:
-                    failed = True; failure_mode = 'Burnout'; break
+                    failed = True 
+                    failure_mode = 'Burnout'
+                    time_of_failure = t
+                    break
 
                 # 4. Calculate Internal Forces based on Truss Factors
                 # M_Ed: kNm -> Nmm
@@ -738,7 +758,7 @@ def run_simulation(N=1000, species_key='W', scenario_key='FTI', treatment='untre
                 
                 # Bending Moment with Fire Eccentricity (FM2)
                 # y_NA_abs is distance of NA from the original bottom
-                y_NA_abs = char_depth + y_bar_fi_mod
+                y_NA_abs = d_ef + y_bar_fi_mod
                 e_fire = abs(y_NA_abs - h_mem / 2.0)
                 M_Ed_tot = M_Ed + abs(N_Ed) * e_fire 
                 
@@ -751,6 +771,7 @@ def run_simulation(N=1000, species_key='W', scenario_key='FTI', treatment='untre
                 else:
                     V_Ed = V_global        # Conservative max for Chords
                 
+                A_shear = b_residual * h_residual  
                 # 5. Limit State Evaluation based on Member Type
                 
                 # Tension Members -> Bottom Chord and Tension Webs (FM3, FM4, FM4a, FM5, FM7)
@@ -758,18 +779,18 @@ def run_simulation(N=1000, species_key='W', scenario_key='FTI', treatment='untre
                     
                     # 1. Pure Tension Rupture (FM3 / FM7)
                     if tension_limit_state(N_Ed, ft0, A_ef, theta_R) <= 0:
-                        failed = True; failure_mode = 'Tension'; break
+                        failed = True; time_of_failure = t; failure_mode = 'Tension'; break
                         
                     # 2. Combined Tension and Bending (FM4a)
                     # Only calculate if there's actually a bending moment defined
                     if props['k_moment'] > 0:
                         if combined_tension_bending_limit_state(N_Ed, M_Ed_tot, ft0, fm, A_ef, W_ef, theta_R) <= 0:
-                            failed = True; failure_mode = 'Comb. Tension+Bending'; break
+                            failed = True; time_of_failure = t; failure_mode = 'Comb. Tension+Bending'; break
                             
                     # 3. Pure Bending (FM4) - Secondary check requested previously
                     if props['k_moment'] > 0:
                         if bending_limit_state(M_Ed_tot, fm, W_ef, theta_R) <= 0:
-                            failed = True; failure_mode = 'Bending'; break
+                            failed = True; time_of_failure = t; failure_mode = 'Bending'; break
                             
                     # 4. Lateral Torsional Buckling - Bottom Chord Only (FM5)
                     if 'bending' in props['type'] and props['k_moment'] > 0:
@@ -778,7 +799,7 @@ def run_simulation(N=1000, species_key='W', scenario_key='FTI', treatment='untre
                         L_ef = props['L_unbraced_ratio'] * mem_length
                         
                         if lateral_torsional_buckling_limit_state(M_Ed_tot, fm, E_05_fi, W_ef, L_ef, b_residual, h_residual, theta_R) <= 0:
-                            failed = True; failure_mode = 'LTB'; break
+                            failed = True; time_of_failure = t; failure_mode = 'LTB'; break
                         
                 # Top Chord -> Combined Bending + Compression (FM2)
                 if 'compression_bending' in props['type']:
@@ -790,7 +811,7 @@ def run_simulation(N=1000, species_key='W', scenario_key='FTI', treatment='untre
                     k_c_y = min(1.0 / (k_y + np.sqrt(max(0, k_y**2 - lambda_fi_y**2))), 1.0) if A_ef > 0 else 0.0
                     
                     if combined_bending_compression_limit_state(N_Ed, M_Ed_tot, fc0, fm, A_ef, W_ef, k_c_y, theta_R) <= 0:
-                        failed = True; failure_mode = 'Comb. Bending+Comp'; break
+                        failed = True; time_of_failure = t; failure_mode = 'Comb. Bending+Comp'; break
 
                 # Top Chord / Webs -> Buckling (FM1, FM6)
                 if 'compression' in props['type']:
@@ -804,8 +825,12 @@ def run_simulation(N=1000, species_key='W', scenario_key='FTI', treatment='untre
                 # All Members -> Shear (FM8)
                 # With V_Ed * 0.5, Species W (100mm) should now PASS this check
                 if shear_limit_state(V_Ed, fv, A_ef, theta_R) <= 0:
-                    failed = True; failure_mode = 'Shear'; break
-        
+                    failed = True; time_of_failure = t; failure_mode = 'Shear'; break
+
+            # Once any member fails, record the actual time and exit the time loop
+            if failed:
+                break
+
         res = {'failed': failed, 'time': time_of_failure, 'mode': failure_mode, 'truss': truss_type}
         results.append(res)
         if sensitivity:

@@ -12,6 +12,7 @@
 /thesis.txt
 /profile.txt
 /updated document.txt
+.DS_Store
 # Environments
 .env
 .envrc
