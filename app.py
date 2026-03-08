@@ -262,15 +262,15 @@ with st.sidebar:
     species_display = st.selectbox("**Wood Species**", list(species_options.keys()))
     species_key = species_options[species_display]
 
-    treatment_display = st.selectbox("**Treatment**", ["Untreated", "Borax (Fire Retardant)"])
-    treatment = "borax" if "Borax" in treatment_display else "untreated"
+    treatment_display = st.selectbox("**Treatment**", ["Untreated", "Treated"])
+    treatment = "borax" if treatment_display == "Treated" else "untreated"
 
     st.markdown('<div class="section-title">Structural Configuration</div>', unsafe_allow_html=True)
     truss_options = list(TRUSS_CONFIGS.keys())
     truss_type = st.selectbox("**Truss Configuration**", truss_options)
 
     st.markdown('<div class="section-title">Fire Scenario</div>', unsafe_allow_html=True)
-    scenario_options = {v['name']: k for k, v in FIRE_SCENARIOS.items()}
+    scenario_options = {f"({k}) {v['name']}": k for k, v in FIRE_SCENARIOS.items()}
     scenario_display = st.selectbox("**Fire Scenario**", list(scenario_options.keys()))
     scenario_key = scenario_options[scenario_display]
 
