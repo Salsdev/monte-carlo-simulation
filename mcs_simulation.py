@@ -82,7 +82,7 @@ TRUSS_CONFIGS = {
         'members': {
             'Top Chord': {
                 'type': 'compression_bending',
-                'L_unbraced_ratio': 0.125,
+                'L_unbraced_ratio': 0.25,      # 1500mm / 6000mm
                 'k_axial': 6.22,
                 'k_moment': 0.225,
                 'b': 75, 'h': 150
@@ -90,28 +90,28 @@ TRUSS_CONFIGS = {
             'Bottom Chord': {
                 'type': 'tension_bending',
                 'length': 1500,
-                'L_unbraced_ratio': 0.5,
+                'L_unbraced_ratio': 0.25,      # 1500mm / 6000mm
                 'k_axial': 5.63,
                 'k_moment': 0.05,
                 'b': 75, 'h': 150
             },
             'Diagonal Web (Compression)': {
                 'type': 'compression',
-                'L_unbraced_ratio': 0.15,
+                'L_unbraced_ratio': 0.30,      # 1800mm / 6000mm
                 'k_axial': 2.73,
                 'k_moment': 0.02,
                 'b': 75, 'h': 150
             },
             'Diagonal Web (Tension)': {
                 'type': 'tension',
-                'L_unbraced_ratio': 0.15,
+                'L_unbraced_ratio': 0.30,      # 1800mm / 6000mm
                 'k_axial': 2.24,
                 'k_moment': 0.0,
                 'b': 75, 'h': 150
             },
             'Vertical Web': {
                 'type': 'compression',
-                'L_unbraced_ratio': 0.083,
+                'L_unbraced_ratio': 0.1667,    # 1000mm / 6000mm
                 'k_axial': 1.85,
                 'k_moment': 0.0,
                 'b': 75, 'h': 150
@@ -296,14 +296,14 @@ def calculate_kE_fi(temp):
         return 0.0
 
 
-def get_effective_section_integrated(b0, h0, d_char, species_key, t, T_fire):
+def get_effective_section_integrated(b0, h0, d_char, species_key, t):
     """
     Integrated effective section per Section 3.4.3.1 (3-sided exposure).
     Returns:
         A_eff        — Strength-weighted effective area  (mm²)
         W_eff        — Strength-weighted section modulus (mm³)
         I_eff        — Stiffness-weighted I (strong axis, mm⁴)
-        y_bar_fi_mod — Strength NA distance from residual bottom (mm)
+        y_bar_fi_mod — Strength NA distance from char front / hot face (mm)
         b_residual   — Residual width after charring (mm)
         h_residual   — Residual depth after charring (mm)
         I_eff_z      — Stiffness-weighted I (weak axis, mm⁴)
@@ -385,12 +385,12 @@ def combined_tension_bending_limit_state(N_Ed, M_Ed, ft0, fm, A_ef, W_ef, theta_
     return theta_R * 1.0 - interaction
 
 
-def lateral_torsional_buckling_limit_state(M_Ed, fm, E_05_fi, W_ef, L_ef,
+def lateral_torsional_buckling_limit_state(M_Ed, fm, E_mod, W_ef, L_ef,
                                            b_ef, h_ef, theta_R):
     """FM5: Lateral Torsional Buckling — G5 = k_crit·fm·Wef - M_Ed"""
     if W_ef <= 0 or b_ef <= 0 or h_ef <= 0:
         return -1.0
-    sigma_m_crit = (0.78 * b_ef ** 2 * E_05_fi) / (h_ef * L_ef)
+    sigma_m_crit = (0.78 * b_ef ** 2 * E_mod) / (h_ef * L_ef)
     lambda_rel_m = np.sqrt(fm / sigma_m_crit) if sigma_m_crit > 0 else 999
     if lambda_rel_m <= 0.75:
         k_crit = 1.0
@@ -403,17 +403,18 @@ def lateral_torsional_buckling_limit_state(M_Ed, fm, E_05_fi, W_ef, L_ef,
     return theta_R * M_b_Rd_fi - M_Ed
 
 
-def buckling_limit_state(N_Ed, f_c0_k, E_05_fi, I_ef, A_ef, theta_R, L_cr=2000):
+def buckling_limit_state(N_Ed, fc0, E_mod, I_ef, A_ef, theta_R, L_cr=2000):
     """
     FM1 / FM6: Compression Buckling per Eqns 3.3–3.10.
     G1 = k_c,y · fc0,d,fi · Aef - N_Ed
+    Uses sampled fc0 and E for probabilistic consistency.
     """
     if A_ef <= 0:
         return -1.0
     i_ef = np.sqrt(I_ef / A_ef)
     if i_ef <= 0:
         return -1.0
-    lambda_fi = (L_cr / (np.pi * i_ef)) * np.sqrt(f_c0_k / E_05_fi)
+    lambda_fi = (L_cr / (np.pi * i_ef)) * np.sqrt(fc0 / E_mod)
     beta_c = 0.2  # imperfection factor for solid timber
     k = 0.5 * (1 + beta_c * (lambda_fi - 0.3) + lambda_fi ** 2)
     discriminant = k ** 2 - lambda_fi ** 2
@@ -421,7 +422,7 @@ def buckling_limit_state(N_Ed, f_c0_k, E_05_fi, I_ef, A_ef, theta_R, L_cr=2000):
         k_c_fi = 0.0
     else:
         k_c_fi = min(1.0 / (k + np.sqrt(discriminant)), 1.0)
-    N_Rd_fi = k_c_fi * f_c0_k * A_ef
+    N_Rd_fi = k_c_fi * fc0 * A_ef
     return theta_R * N_Rd_fi - N_Ed
 
 
@@ -481,6 +482,85 @@ def sample_uncertainty(mean=1.0, cov=0.1):
     return np.random.lognormal(mu, sigma)
 
 
+def _get_lognormal_params(mean, std):
+    """Convert physical-space mean/std to lognormal μ_ln, σ_ln."""
+    sigma = np.sqrt(np.log(1 + (std / mean) ** 2))
+    mu = np.log(mean) - 0.5 * sigma ** 2
+    return mu, sigma
+
+
+def _z_to_marginal(z, params):
+    """Transform a standard normal sample z to the target marginal distribution."""
+    u = stats.norm.cdf(z)  # z → uniform via Φ(z)
+    d = params['dist']
+    if d == 'normal':
+        return stats.norm.ppf(u, loc=params['mean'], scale=params['std'])
+    elif d == 'lognormal':
+        mu_ln, sigma_ln = _get_lognormal_params(params['mean'], params['std'])
+        return stats.lognorm.ppf(u, s=sigma_ln, scale=np.exp(mu_ln))
+    else:
+        return params['mean']
+
+
+def _z_to_lognormal(z, mu_ln, sigma_ln):
+    """Transform a standard normal sample z to a lognormal marginal."""
+    u = stats.norm.cdf(z)
+    return stats.lognorm.ppf(u, s=sigma_ln, scale=np.exp(mu_ln))
+
+
+# --- Correlation matrix for [fm, fc0, E, rho, MC, beta_exp] ---
+# Eqns 3.78-3.82 specify 5 direct correlations. Two implied transitive
+# correlations are added to ensure positive-definiteness:
+#   Corr(fm, rho)  = 0.8 × 0.6 = 0.48  (via fm↔fc0↔rho)
+#   Corr(fc0, E)   = 0.8 × 0.7 = 0.56  (via fc0↔fm↔E)
+#         fm    fc0    E     rho    MC    beta
+_CORR_MATRIX = np.array([
+    [1.0,  0.8,  0.7,  0.48,  0.0,  0.0],   # fm
+    [0.8,  1.0,  0.56, 0.6,   0.0,  0.0],   # fc0
+    [0.7,  0.56, 1.0,  0.0,   0.0,  0.0],   # E
+    [0.48, 0.6,  0.0,  1.0,   0.0, -0.5],   # rho
+    [0.0,  0.0,  0.0,  0.0,   1.0,  0.3],   # MC
+    [0.0,  0.0,  0.0, -0.5,   0.3,  1.0],   # beta_exp
+])
+_CORR_CHOLESKY_L = np.linalg.cholesky(_CORR_MATRIX)
+
+
+def sample_correlated(species, mu_ln_char, sigma_ln_char):
+    """
+    Sample correlated material properties via Gaussian Copula
+    per Eqns 3.78–3.82 (JCSS Probabilistic Model Code).
+
+    Correlation structure (in standard-normal space):
+        Corr(fm,   fc0)      = 0.8   (Eqn 3.78)
+        Corr(fm,   E)        = 0.7   (Eqn 3.79)
+        Corr(fc0,  rho)      = 0.6   (Eqn 3.80)
+        Corr(rho,  beta_exp) = -0.5  (Eqn 3.81)
+        Corr(MC,   beta_exp) = 0.3   (Eqn 3.82)
+
+    Variables: [fm, fc0, E, rho, MC, beta_exp]
+    Variables not in the matrix (fv) are sampled independently.
+
+    Returns:
+        fm, fc0, E, rho, MC, beta_exp, fv  (all as floats)
+    """
+    # Generate independent standard normals → correlated via pre-computed Cholesky
+    u = np.random.standard_normal(6)
+    z = _CORR_CHOLESKY_L @ u  # correlated standard normals
+
+    # Transform to marginals via inverse CDF
+    fm       = _z_to_marginal(z[0], species['fm'])
+    fc0      = _z_to_marginal(z[1], species['fc0'])
+    E        = _z_to_marginal(z[2], species['E'])
+    rho      = _z_to_marginal(z[3], species['rho'])
+    MC       = _z_to_marginal(z[4], species['MC'])
+    beta_exp = _z_to_lognormal(z[5], mu_ln_char, sigma_ln_char)
+
+    # fv is uncorrelated (not in Eqns 3.78–3.82)
+    fv = sample_variable(species['fv'])
+
+    return fm, fc0, E, rho, MC, beta_exp, fv
+
+
 def get_k_vals(p):
     """5th-percentile characteristic value for a distribution."""
     if p['dist'] == 'gumbel':
@@ -538,9 +618,6 @@ def run_simulation(
     # Determine simulation duration
     duration = rei_duration if rei_duration is not None else fire['base_duration']
 
-    # Pre-compute characteristic values (deterministic, once per run)
-    f_c0_k  = get_k_vals(species['fc0'])
-    E_05_fi = get_k_vals(species['E'])
 
     # Pre-compute lognormal parameters for experimental charring rate
     cond = 'treated' if treatment == 'borax' else 'untreated'
@@ -559,22 +636,15 @@ def run_simulation(
     failures_so_far = 0
 
     for i in range(N):
-        # --- Sample Random Variables ---
-        rho  = sample_variable(species['rho'])
-        fm   = sample_variable(species['fm'])
+        # --- Sample Correlated Material Properties (Eqns 3.78–3.82) ---
+        fm, fc0, E, rho, MC, beta_exp_sampled, fv = \
+            sample_correlated(species, mu_ln_char, sigma_ln_char)
         ft0  = 0.6 * fm
-        fc0  = sample_variable(species['fc0'])
-        fv   = sample_variable(species['fv'])
-        E    = sample_variable(species['E'])
-        MC   = sample_variable(species['MC'])
 
         # --- Sample Model Uncertainties ---
         theta_model = sample_uncertainty(1.0, 0.10)
         theta_R     = sample_uncertainty(1.0, 0.10)
         theta_E     = sample_uncertainty(1.0, 0.05)
-
-        # --- Sample Experimental Charring Rate ---
-        beta_exp_sampled = np.random.lognormal(mu_ln_char, sigma_ln_char)
 
         # --- Sample Loads (Eurocode fire combination) ---
         G_load = np.random.normal(G_params['mean'], G_params['std'])
@@ -614,7 +684,7 @@ def run_simulation(
                     b_mem = 100
 
                 A_ef, W_ef, I_ef, y_bar_fi_mod, b_residual, h_residual, I_ef_z = \
-                    get_effective_section_integrated(b_mem, h_mem, char_depth, species_key, t, T_fire)
+                    get_effective_section_integrated(b_mem, h_mem, char_depth, species_key, t)
 
                 if A_ef <= 0:
                     failed = True
@@ -627,7 +697,7 @@ def run_simulation(
                 N_Ed = E_d_fi_base * props['k_axial'] * 1_000       # N
 
                 # Fire-induced eccentricity moment contribution
-                y_NA_abs  = d_ef + y_bar_fi_mod
+                y_NA_abs  = char_depth + y_bar_fi_mod
                 e_fire    = abs(y_NA_abs - h_mem / 2.0)
                 M_Ed_tot  = M_Ed + abs(N_Ed) * e_fire
 
@@ -660,7 +730,7 @@ def run_simulation(
                         mem_length = props.get('length', truss['span'])
                         L_ef = props['L_unbraced_ratio'] * mem_length
                         if lateral_torsional_buckling_limit_state(
-                                M_Ed_tot, fm, E_05_fi, W_ef, L_ef,
+                                M_Ed_tot, fm, E, W_ef, L_ef,
                                 b_residual, h_residual, theta_R) <= 0:
                             failed = True; time_of_failure = t; failure_mode = 'LTB'; break
 
@@ -668,7 +738,7 @@ def run_simulation(
                 if 'compression_bending' in props['type']:
                     L_cr_y = props['L_unbraced_ratio'] * truss['span']
                     i_ef_y = np.sqrt(I_ef / A_ef) if A_ef > 0 else 1.0
-                    lambda_fi_y = (L_cr_y / (np.pi * i_ef_y)) * np.sqrt(f_c0_k / E_05_fi)
+                    lambda_fi_y = (L_cr_y / (np.pi * i_ef_y)) * np.sqrt(fc0 / E)
                     k_y    = 0.5 * (1 + 0.2 * (lambda_fi_y - 0.3) + lambda_fi_y ** 2)
                     disc   = max(0, k_y ** 2 - lambda_fi_y ** 2)
                     k_c_y  = min(1.0 / (k_y + np.sqrt(disc)), 1.0) if A_ef > 0 else 0.0
@@ -678,13 +748,24 @@ def run_simulation(
                         failure_mode = 'Comb. Bending+Comp'; break
 
                 # ---- Compression-type members: Buckling (FM1, FM6) ----
+                # Eqn 3.43: k_c = min(k_c,y, k_c,z) — check both axes
                 if 'compression' in props['type']:
-                    L_cr = props['L_unbraced_ratio'] * truss['span']
+                    L_cr_y = props['L_unbraced_ratio'] * truss['span']
+                    # Strong-axis buckling
                     if buckling_limit_state(
-                            N_Ed, f_c0_k, E_05_fi, I_ef, A_ef, theta_R, L_cr=L_cr) <= 0:
+                            N_Ed, fc0, E, I_ef, A_ef, theta_R, L_cr=L_cr_y) <= 0:
                         failed = True
-                        time_of_failure = t          # ← BUG FIX: was missing
-                        failure_mode = 'Web Buckling' if 'Web' in member_name else 'Chord Buckling'
+                        time_of_failure = t
+                        failure_mode = 'Web Buckling (y)' if 'Web' in member_name else 'Chord Buckling (y)'
+                        break
+                    # Weak-axis buckling — Table 4.16: web members have mid-length
+                    # discrete restraints, so L_cr_z = 0.5 × L
+                    L_cr_z = 0.5 * L_cr_y
+                    if buckling_limit_state(
+                            N_Ed, fc0, E, I_ef_z, A_ef, theta_R, L_cr=L_cr_z) <= 0:
+                        failed = True
+                        time_of_failure = t
+                        failure_mode = 'Web Buckling (z)' if 'Web' in member_name else 'Chord Buckling (z)'
                         break
 
                 # ---- All members: Shear (FM8) ----
@@ -745,8 +826,10 @@ def analyze_results(df, scenario_name, species_name, treatment):
 
     modes = failures['mode'].value_counts() if num_failures > 0 else {}
 
-    def pct(mode_name):
-        return (modes.get(mode_name, 0) / num_failures * 100) if num_failures > 0 else 0.0
+    def pct(*mode_names):
+        """Sum percentages for one or more mode name variants."""
+        total_count = sum(modes.get(m, 0) for m in mode_names)
+        return (total_count / num_failures * 100) if num_failures > 0 else 0.0
 
     return {
         'Scenario':              scenario_name,
@@ -760,13 +843,17 @@ def analyze_results(df, scenario_name, species_name, treatment):
         'Beta':                  beta,
         'Beta_Low':              beta_l,
         'Beta_High':             beta_u,
-        'FM1_Buckling%':         pct('Chord Buckling'),
+        'FM1_Buckling%':         pct('Chord Buckling (y)', 'Chord Buckling (z)'),
+        'FM1_Buckling_y%':       pct('Chord Buckling (y)'),
+        'FM1_Buckling_z%':       pct('Chord Buckling (z)'),
         'FM2_CombBendComp%':     pct('Comb. Bending+Comp'),
         'FM3_Tension%':          pct('Chord Tension'),
         'FM4_Bending%':          pct('Bending'),
         'FM4a_CombTenBend%':     pct('Comb. Tension+Bending'),
         'FM5_LTB%':              pct('LTB'),
-        'FM6_WBuckling%':        pct('Web Buckling'),
+        'FM6_WBuckling%':        pct('Web Buckling (y)', 'Web Buckling (z)'),
+        'FM6_WBuckling_y%':      pct('Web Buckling (y)'),
+        'FM6_WBuckling_z%':      pct('Web Buckling (z)'),
         'FM7_WTension%':         pct('Web Tension'),
         'FM8_Shear%':            pct('Shear'),
         'Burnout%':              pct('Burnout'),
@@ -775,7 +862,10 @@ def analyze_results(df, scenario_name, species_name, treatment):
 
 def compute_sensitivity(samples_df):
     """
-    Spearman rank correlation of input variables vs. failure outcome.
+    Sensitivity analysis per Eqn 3.87.
+    Spearman rank correlation was utilized as a computationally efficient
+    proxy to identify critical parameters instead of the Sobol' indices
+    proposed in the methodology (Section 3.15.3).
     Returns a Series sorted by |correlation|.
     """
     df = samples_df.loc[:, samples_df.std() > 0]
