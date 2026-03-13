@@ -1,79 +1,122 @@
-# Fire Reliability Analysis of Structural Timber
+# 🔥 Fire Reliability Analysis of Structural Timber
 ## High-Fidelity Monte Carlo Simulation (MCS) Framework
 
-This repository contains a professional-grade probabilistic framework for evaluating the structural reliability of timber beams exposed to fire. The simulation integrates advanced thermo-mechanical models with stochastic sampling to quantify safety margins and reliability indices ($\beta$) per international standards (Eurocodes).
+A probabilistic framework for evaluating the structural reliability of timber roof trusses exposed to fire. The simulation integrates thermo-mechanical charring models with stochastic sampling to quantify safety margins and reliability indices (β) per **EN 1995-1-2** and **ISO 834**.
+
+> **Species studied:** *Anogeissus leiocarpa* (White Wood) and *Erythrophleum suaveolens* (Red Wood) — Nigerian hardwoods.
 
 ---
 
-## 🛠 Project Methodology
+## 📂 Project Structure
 
-The simulation implements a multi-physics approach to model the degradation of timber performance during fire exposure.
+| File | Description |
+|---|---|
+| `mcs_simulation.py` | Core simulation engine — charring models, limit states, sampling, and analysis |
+| `app.py` | Interactive Streamlit dashboard with Plotly visualisations |
+| `requirements.txt` | Python dependencies |
+
+---
+
+## 🛠 Methodology
 
 ### 1. Stochastic Material & Load Framework
-To account for natural variability in wood properties and structural loading, the system samples input variables from statistical distributions:
-*   **Material Properties**: Bending Strength (Gumbel), Modulus of Elasticity (Lognormal), Density (Normal), and Moisture Content (Normal).
-*   **Stochastic Loads**: Design fire loads are calculated using a combination of Normal (Dead Load) and Gumbel (Live Load) distributions, adjusted by uncertainty factors ($\theta$).
-*   **Model Probabilities**: Includes multiplicative uncertainty factors for resistance ($\theta_R$), loading ($\theta_E$), and the charring model itself.
+Input variables are sampled from statistical distributions to capture natural variability:
+
+- **Material Properties** — Bending Strength (*Gumbel*), Compressive Strength (*Lognormal*), Modulus of Elasticity (*Lognormal*), Density (*Normal*), Moisture Content (*Normal*), Shear Strength (*Lognormal*)
+- **Correlated Sampling** — A **Gaussian Copula** (Cholesky decomposition) enforces realistic inter-variable correlations per the JCSS Probabilistic Model Code (Eqns 3.78–3.82)
+- **Stochastic Loads** — Dead Load (*Normal*) and Live Load (*Gumbel*), scaled by uncertainty factors (θ_R, θ_E, θ_model)
 
 ### 2. Multi-Model Charring Dynamics
-The effective charring rate ($\beta_{eff}$) is calculated using a weighted hybrid approach (40/30/30) to maximize robustness:
-*   **Experimental Data (40%)**: Derived from site-specific fire tests for Nigerian hardwoods (*Anogeissus leiocarpa* and *Erythrophleum suaveolens*).
-*   **Mikkola Physics Model (30%)**: A net heat flux model based on the energy required for wood pyrolysis and water evaporation.
-*   **Hietaniemi Analytical Model (30%)**: Accounts for time-dependent oxygen factors and thermal insulation decay.
+The effective charring rate (β_eff) is a **weighted hybrid** (40 / 30 / 30):
 
-### 3. Integrated Reduced Cross-Section Method (RCSM)
-Unlike simplified models that use a fixed zero-strength layer, this framework uses **Numerical Integration**:
-*   **Discretization**: The residual beam is divided into 20 thermal layers.
-*   **Thermal Profiling**: Solves transient heat conduction to map temperatures within each layer.
-*   **Layer-Wise Reduction**: Specific reduction factors ($k_{mod,fi}$ for strength and $k_{E,fi}$ for stiffness) are applied to each layer based on its instantaneous temperature.
-*   **Shifted Neutral Axis**: Dynamically calculates the section modulus ($W_{ef}$) and moment of inertia ($I_{ef}$) as the beam chars and the thermal gradient shifts.
+| Weight | Model | Basis |
+|--------|-------|-------|
+| 40% | **Experimental** | Site-specific fire tests for Nigerian hardwoods |
+| 30% | **Mikkola (1991)** | Net heat flux model — energy for pyrolysis & water evaporation |
+| 30% | **Hietaniemi (2005)** | Time-dependent oxygen factor & thermal insulation decay |
+
+### 3. Fire Scenarios
+
+| Key | Name | Type | Duration |
+|-----|------|------|----------|
+| FTI | Standard ISO 834 | Standard | 60 min |
+| FTII | Parametric Kitchen (Low Vent) | Parametric | 43 min |
+| FTIII | Parametric Sitting Room (High Vent) | Parametric | 45 min |
+
+### 4. Reduced Cross-Section Method (RCSM) — Numerical Integration
+Instead of a simplified fixed zero-strength layer, the residual beam is **discretised into 20 thermal layers**:
+
+- Transient heat conduction maps temperatures within each layer
+- Layer-wise reduction factors (`k_mod,fi` for strength, `k_E,fi` for stiffness) are applied per instantaneous temperature
+- Shifted neutral axis — dynamically calculates effective section modulus (W_ef) and moment of inertia (I_ef)
+
+### 5. Truss Configurations
+
+| Configuration | Description | Members |
+|---|---|---|
+| **Double-Howe** | Verified 6 m truss (Chapter 4) | Top Chord, Bottom Chord, Compression Web, Tension Web |
+| **Mono-pitch** | Single-slope extension | Top Chord, Vertical Web |
 
 ---
 
-## 🏗 Structural Reliability Engine
+## 🏗 Structural Limit States (FM1–FM8)
 
-The framework evaluates 8 critical **Limit State Functions (LSF)** across appropriate structural members (Top Chord, Bottom Chord, and Webs) every minute:
+Eight failure modes are evaluated every minute across all truss members:
 
-1.  **Pure Buckling (FM1, FM6)**: Assesses stability using the Euler critical load and relative slenderness ($\lambda_{fi}$) of the heated residual section.
-2.  **Combined Bending & Axial Compression (FM2)**: Evaluates interaction between compressive and flexural stresses using instability factors.
-3.  **Tension Rupture (FM3, FM7)**: Verifies the remaining effective tension area against axial load (Bottom Chord and Tension Webs).
-4.  **Pure Bending (FM4)**: Evaluates the strength-weighted section modulus against design moments.
-5.  **Combined Tension & Bending (FM4a)**: Interaction check for combined tensile and flexural stresses in the Bottom Chord.
-6.  **Lateral Torsional Buckling (FM5)**: Assesses out-of-plane instability on the compression flange of members under bending.
-7.  **Shear (FM8)**: Checks local resistance at supports as the cross-section area is reduced.
-8.  **Burnout**: Identifies members that have completely charred away ($A_{ef} \le 0$).
+| FM | Member | Check | Eurocode Ref |
+|---|---|---|---|
+| **FM1** | Top Chord | Pure Buckling — Euler critical load & relative slenderness (λ_fi) | Eqn 3.3 |
+| **FM2** | Top Chord | Combined Bending & Axial Compression — instability interaction | Eqn 3.14 |
+| **FM3** | Bottom Chord | Tension Rupture — effective tension area vs. axial load | Eqn 3.22 |
+| **FM4** | Bottom Chord | Pure Bending — strength-weighted W_ef vs. design moment | Eqn 3.28 |
+| **FM4a** | Bottom Chord | Combined Tension & Bending — interaction check | Eqn 3.32 |
+| **FM5** | Bottom Chord | Lateral Torsional Buckling — out-of-plane instability | Eqn 3.34 |
+| **FM6** | Web (Compression) | Compression Buckling — web member stability | Eqn 3.40 |
+| **FM7** | Web (Tension) | Tension Rupture — web member capacity | Eqn 3.48 |
+| **FM8** | All Members | Shear — geometric residual area vs. shear demand | Eqn 3.52 |
+
+An additional **Burnout** check identifies members that have completely charred away (A_ef ≤ 0).
+
+---
+
+## 📊 Interactive Dashboard (Streamlit)
+
+The dashboard (`app.py`) provides a premium dark-themed UI with five analysis tabs:
+
+1. **Summary Table** — Reliability results across all b × h combinations with CSV export
+2. **Failure Mode Distribution** — Horizontal bar & donut charts for FM1–FM8 breakdown
+3. **Parametric Heatmap** — β or Pf heat map over the width/depth grid (with 3D surface option)
+4. **Convergence** — Running Pf and β vs. iteration count, with convergence check (Eqn 3.90)
+5. **Sensitivity** — Spearman rank correlation tornado chart identifying critical design parameters
 
 ### Results & Statistics
-*   **Probability of Failure ($P_f$)**: Calculated as the failure ratio across $N$ iterations (typically 10,000 to 100,000).
-*   **Reliability Index ($\beta$)**: Derived as $\beta = -\Phi^{-1}(P_f)$.
-*   **Exact Confidence Intervals**: Uses the **Clopper-Pearson** method (Exact Binomial) to ensure statistical validity for research publication.
-*   **Sensitivity Analysis**: Ranks the impact of variables using **Spearman Rank Correlation**.
+- **Probability of Failure (Pf)** — failure ratio across N iterations (typically 10,000–100,000)
+- **Reliability Index (β)** — derived as β = −Φ⁻¹(Pf)
+- **95% Confidence Intervals** — **Clopper-Pearson** exact binomial method
+- **Sensitivity Analysis** — **Spearman Rank Correlation** of input variables with failure
 
 ---
 
-## 📊 Visualizations
-The system automatically generates high-impact graphics for thesis inclusion:
-*   **Reliability Heatmaps**: Cross-comparison of species, treatments, and fire scenarios.
-*   **Exact Stats Plots**: Probabilities of failure with 95% Confidence Interval error bars.
-*   **Failure Distributions**: Stacked analysis showing the dominant cause of collapse for each scenario.
-
----
-
-## 💻 Technical Setup
+## 💻 Getting Started
 
 ### Prerequisites
-*   Python 3.10+
-*   Dependencies: `numpy`, `scipy`, `pandas`, `matplotlib`, `tqdm`
+- Python 3.10+
 
-### Execution
-Run the full scenario matrix (Standard & Parametric fires):
+### Installation
+```bash
+pip install -r requirements.txt
+```
+
+### Run the Simulation (CLI)
 ```bash
 python3 mcs_simulation.py
 ```
 
-### Outputs
-*   `simulation_results.csv`: Comprehensive raw data.
-*   `*.png`: High-resolution (300 DPI) plots for documentation.
+### Launch the Dashboard
+```bash
+streamlit run app.py
+```
 
 ---
+
 *Developed for the research of Fire Reliability of Timber Structural Elements.*
