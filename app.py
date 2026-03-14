@@ -506,17 +506,16 @@ with tab1:
     # Methodology reference box
     with st.expander("📖 Methodology Reference (Table 3.2 — Limit State Functions)"):
         st.markdown("""
-| FM | Member | Limit State Function | Eqn |
+| FM | Member | Limit State Function |
 |---|---|---|---|
-| FM1 | Top Chord | G₁ = k_c,y · f_c,0,d,fi · A_ef − N_Ed,fi | 3.3 |
-| FM2 | Top Chord | G₂ = 1 − [(σ_c,0,d / k_c,y·f_c,0,d,fi)² + σ_m,y,d/f_m,d,fi] | 3.14 |
-| FM3 | Bottom Chord | G₃ = f_t,0,d,fi · A_ef − N_Ed,fi | 3.22 |
-| FM4 | Bottom Chord | G₄ = f_m,d,fi · W_ef,y − M_Ed,fi | 3.28 |
-| FM4a | Bottom Chord | G₄ₐ = 1 − (σ_t,0,d/f_t,0,d,fi + σ_m,y,d/f_m,d,fi) | 3.32 |
-| FM5 | Bottom Chord | G₅ = k_crit · f_m,d,fi · W_ef,y − M_Ed,fi | 3.34 |
-| FM6 | Web (Comp.) | G₆ = k_c · f_c,0,d,fi · A_ef − N_Ed,fi,web | 3.40 |
-| FM7 | Web (Tension) | G₇ = f_t,0,d,fi · A_ef − N_Ed,fi,web | 3.48 |
-| FM8 | All Members | G₈ = f_v,d,fi · A_ef,shear − V_Ed,fi | 3.52 |
+| FM1 | Top Chord | G₁ = k_c,y · f_c,0,d,fi · A_ef − N_Ed,fi |
+| FM2 | Top Chord | G₂ = 1 − [(σ_c,0,d / k_c,y·f_c,0,d,fi)² + σ_m,y,d/f_m,d,fi] |
+| FM4 | Bottom Chord | G₄ = f_m,d,fi · W_ef,y − M_Ed,fi |
+| FM4a | Bottom Chord | G₄ₐ = 1 − (σ_t,0,d/f_t,0,d,fi + σ_m,y,d/f_m,d,fi) |
+| FM5 | Bottom Chord | G₅ = k_crit · f_m,d,fi · W_ef,y − M_Ed,fi |
+| FM6 | Web (Comp.) | G₆ = k_c · f_c,0,d,fi · A_ef − N_Ed,fi,web |
+| FM7 | Web (Tension) | G₇ = f_t,0,d,fi · A_ef − N_Ed,fi,web |
+| FM8 | All Members | G₈ = f_v,d,fi · A_ef,shear − V_Ed,fi |
         """)
 
 # ─────────────────────────────────────────
