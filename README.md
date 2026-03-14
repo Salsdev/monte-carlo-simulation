@@ -23,7 +23,7 @@ A probabilistic framework for evaluating the structural reliability of timber ro
 Input variables are sampled from statistical distributions to capture natural variability:
 
 - **Material Properties** — Bending Strength (*Gumbel*), Compressive Strength (*Lognormal*), Modulus of Elasticity (*Lognormal*), Density (*Normal*), Moisture Content (*Normal*), Shear Strength (*Lognormal*)
-- **Correlated Sampling** — A **Gaussian Copula** (Cholesky decomposition) enforces realistic inter-variable correlations per the JCSS Probabilistic Model Code (Eqns 3.78–3.82)
+- **Correlated Sampling** — A **Gaussian Copula** (Cholesky decomposition) enforces realistic inter-variable correlations per the JCSS Probabilistic Model Code
 - **Stochastic Loads** — Dead Load (*Normal*) and Live Load (*Gumbel*), scaled by uncertainty factors (θ_R, θ_E, θ_model)
 
 ### 2. Multi-Model Charring Dynamics
@@ -65,15 +65,15 @@ Eight failure modes are evaluated every minute across all truss members:
 
 | FM | Member | Check | Eurocode Ref |
 |---|---|---|---|
-| **FM1** | Top Chord | Pure Buckling — Euler critical load & relative slenderness (λ_fi) | Eqn 3.3 |
-| **FM2** | Top Chord | Combined Bending & Axial Compression — instability interaction | Eqn 3.14 |
-| **FM3** | Bottom Chord | Tension Rupture — effective tension area vs. axial load | Eqn 3.22 |
-| **FM4** | Bottom Chord | Pure Bending — strength-weighted W_ef vs. design moment | Eqn 3.28 |
-| **FM4a** | Bottom Chord | Combined Tension & Bending — interaction check | Eqn 3.32 |
-| **FM5** | Bottom Chord | Lateral Torsional Buckling — out-of-plane instability | Eqn 3.34 |
-| **FM6** | Web (Compression) | Compression Buckling — web member stability | Eqn 3.40 |
-| **FM7** | Web (Tension) | Tension Rupture — web member capacity | Eqn 3.48 |
-| **FM8** | All Members | Shear — geometric residual area vs. shear demand | Eqn 3.52 |
+| **FM1** | Top Chord | Pure Buckling — Euler critical load & relative slenderness (λ_fi) |
+| **FM2** | Top Chord | Combined Bending & Axial Compression — instability interaction |
+| **FM3** | Bottom Chord | Tension Rupture — effective tension area vs. axial load |
+| **FM4** | Bottom Chord | Pure Bending — strength-weighted W_ef vs. design moment |
+| **FM4a** | Bottom Chord | Combined Tension & Bending — interaction check |
+| **FM5** | Bottom Chord | Lateral Torsional Buckling — out-of-plane instability |
+| **FM6** | Web (Compression) | Compression Buckling — web member stability |
+| **FM7** | Web (Tension) | Tension Rupture — web member capacity |
+| **FM8** | All Members | Shear — geometric residual area vs. shear demand |
 
 An additional **Burnout** check identifies members that have completely charred away (A_ef ≤ 0).
 
@@ -86,7 +86,7 @@ The dashboard (`app.py`) provides a premium dark-themed UI with five analysis ta
 1. **Summary Table** — Reliability results across all b × h combinations with CSV export
 2. **Failure Mode Distribution** — Horizontal bar & donut charts for FM1–FM8 breakdown
 3. **Parametric Heatmap** — β or Pf heat map over the width/depth grid (with 3D surface option)
-4. **Convergence** — Running Pf and β vs. iteration count, with convergence check (Eqn 3.90)
+4. **Convergence** — Running Pf and β vs. iteration count, with convergence check
 5. **Sensitivity** — Spearman rank correlation tornado chart identifying critical design parameters
 
 ### Results & Statistics

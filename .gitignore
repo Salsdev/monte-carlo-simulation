@@ -13,6 +13,7 @@
 /profile.txt
 /updated document.txt
 .DS_Store
+.cursor
 # Environments
 .env
 .envrc
