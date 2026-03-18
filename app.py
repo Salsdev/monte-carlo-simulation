@@ -43,23 +43,148 @@ st.markdown("""
       font-family: 'Inter', sans-serif;
   }
 
-  /* Dark base */
+  /* ── Dark base ── */
   .stApp {
       background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%);
       color: #e6edf3;
   }
 
-  /* Sidebar */
+  /* ── Sidebar (premium dark panel) ── */
   section[data-testid="stSidebar"] {
-      background: rgba(22, 27, 34, 0.95);
-      border-right: 1px solid rgba(48, 54, 61, 0.8);
-      backdrop-filter: blur(12px);
+      background: linear-gradient(180deg, #0d1117 0%, #131820 40%, #111820 100%);
+      border-right: 1px solid rgba(48, 54, 61, 0.5);
   }
   section[data-testid="stSidebar"] * {
       color: #e6edf3 !important;
   }
+  section[data-testid="stSidebar"] > div:first-child {
+      padding-top: 0 !important;
+  }
 
-  /* Cards */
+  /* Sidebar branding block */
+  .sidebar-brand {
+      padding: 24px 20px 16px 20px;
+      border-bottom: 1px solid rgba(48, 54, 61, 0.4);
+      margin-bottom: 8px;
+  }
+  .sidebar-brand-icon {
+      font-size: 1.5rem;
+      margin-bottom: 4px;
+  }
+  .sidebar-brand-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #e6edf3;
+      margin: 0;
+      letter-spacing: -0.01em;
+  }
+  .sidebar-brand-sub {
+      font-size: 0.72rem;
+      color: #8b949e;
+      margin: 2px 0 0 0;
+      letter-spacing: 0.03em;
+  }
+
+  /* Sidebar section dividers */
+  .sb-divider {
+      border-top: 1px solid rgba(48, 54, 61, 0.4);
+      padding-top: 12px;
+      margin-top: 14px;
+      margin-bottom: 4px;
+  }
+  .sb-divider span {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+  }
+
+  /* Sidebar form styling */
+  section[data-testid="stSidebar"] [data-testid="stForm"] {
+      border: none !important;
+      padding: 0 !important;
+  }
+
+  /* Selectbox styling (sidebar) */
+  section[data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"] {
+      background: rgba(13, 17, 23, 0.7);
+      border: 1px solid rgba(48, 54, 61, 0.7);
+      border-radius: 8px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  section[data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"]:hover {
+      border-color: rgba(88, 166, 255, 0.5);
+  }
+  section[data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"]:focus-within {
+      border-color: #58a6ff;
+      box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.15);
+  }
+  section[data-testid="stSidebar"] .stSelectbox label {
+      font-size: 0.8rem !important;
+      font-weight: 500 !important;
+      color: #c9d1d9 !important;
+  }
+
+  /* Slider styling (sidebar) */
+  section[data-testid="stSidebar"] .stSlider label {
+      font-size: 0.8rem !important;
+      font-weight: 500 !important;
+      color: #c9d1d9 !important;
+  }
+  section[data-testid="stSidebar"] .stSlider [data-testid="stThumbValue"] {
+      color: #58a6ff !important;
+      font-weight: 600 !important;
+  }
+  section[data-testid="stSidebar"] .stSlider [data-baseweb="slider"] [role="slider"] {
+      background: #58a6ff !important;
+      border-color: #58a6ff !important;
+  }
+
+  /* Caption styling in sidebar */
+  section[data-testid="stSidebar"] .stCaption {
+      font-size: 0.7rem !important;
+      color: #6e7681 !important;
+      line-height: 1.4;
+  }
+
+  /* Submit button in sidebar */
+  section[data-testid="stSidebar"] .stFormSubmitButton > button {
+      background: linear-gradient(135deg, #1f6feb 0%, #388bfd 50%, #58a6ff 100%);
+      color: white !important;
+      border: none;
+      border-radius: 10px;
+      padding: 14px 28px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      width: 100%;
+      letter-spacing: 0.02em;
+      box-shadow: 0 4px 18px rgba(31, 111, 235, 0.35);
+  }
+  section[data-testid="stSidebar"] .stFormSubmitButton > button:hover {
+      background: linear-gradient(135deg, #388bfd 0%, #58a6ff 100%);
+  }
+
+  /* Sidebar footer version tag */
+  .sidebar-footer {
+      text-align: center;
+      padding: 12px 0 4px 0;
+      border-top: 1px solid rgba(48, 54, 61, 0.3);
+      margin-top: 4px;
+  }
+  .sidebar-footer span {
+      font-size: 0.65rem;
+      color: #484f58 !important;
+      letter-spacing: 0.06em;
+  }
+
+  /* Sidebar hr dividers */
+  section[data-testid="stSidebar"] hr {
+      border-color: rgba(48, 54, 61, 0.3) !important;
+      margin: 8px 0 !important;
+  }
+
+  /* ── Main area cards ── */
   .metric-card {
       background: rgba(22, 27, 34, 0.8);
       border: 1px solid rgba(48, 54, 61, 0.9);
@@ -127,7 +252,7 @@ st.markdown("""
       font-weight: 600;
   }
 
-  /* Section headers */
+  /* Section headers (main area fallback) */
   .section-title {
       font-size: 0.7rem;
       font-weight: 600;
@@ -158,20 +283,6 @@ st.markdown("""
       margin: 0;
   }
 
-  /* REI badge row */
-  .rei-row {
-      display: flex;
-      gap: 8px;
-      margin: 8px 0;
-  }
-  .rei-chip {
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-  }
-
   /* Tabs */
   .stTabs [data-baseweb="tab-list"] {
       background: rgba(22, 27, 34, 0.6);
@@ -192,7 +303,7 @@ st.markdown("""
   /* DataFrame */
   .stDataFrame { border-radius: 10px; overflow: hidden; }
 
-  /* Button */
+  /* Button (main area) */
   .stButton > button {
       background: linear-gradient(135deg, #1f6feb, #388bfd);
       color: white;
@@ -255,60 +366,87 @@ def plotly_layout(title, xlab="", ylab=""):
 # SIDEBAR
 # ─────────────────────────────────────────
 with st.sidebar:
-    st.markdown("### 🌲 Simulation Controls")
-    st.markdown('<div class="section-title">Species & Treatment</div>', unsafe_allow_html=True)
+    # ── Branding header ──
+    st.markdown("""
+    <div class="sidebar-brand">
+        <p class="sidebar-brand-title">🔥 Fire Reliability Engine</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    species_options = {v['name']: k for k, v in SPECIES_DATA.items()}
-    species_display = st.selectbox("**Wood Species**", list(species_options.keys()))
-    species_key = species_options[species_display]
+    with st.form("sim_controls"):
+        # ── Species & Treatment ──
+        st.markdown('<div class="sb-divider"><span>Species &amp; Treatment</span></div>',
+                    unsafe_allow_html=True)
 
-    treatment_display = st.selectbox("**Treatment**", ["Untreated", "Treated"])
-    treatment = "borax" if treatment_display == "Treated" else "untreated"
+        species_options = {v['name']: k for k, v in SPECIES_DATA.items()}
+        species_display = st.selectbox("Wood Species", list(species_options.keys()))
+        species_key = species_options[species_display]
 
-    st.markdown('<div class="section-title">Structural Configuration</div>', unsafe_allow_html=True)
-    truss_options = list(TRUSS_CONFIGS.keys())
-    truss_type = st.selectbox("**Truss Configuration**", truss_options)
+        treatment_display = st.selectbox("Treatment", ["Untreated", "Treated"])
+        treatment = "borax" if treatment_display == "Treated" else "untreated"
 
-    st.markdown('<div class="section-title">Fire Scenario</div>', unsafe_allow_html=True)
-    scenario_options = {f"({k}) {v['name']}": k for k, v in FIRE_SCENARIOS.items()}
-    scenario_display = st.selectbox("**Fire Scenario**", list(scenario_options.keys()))
-    scenario_key = scenario_options[scenario_display]
+        # ── Structural Configuration ──
+        st.markdown('<div class="sb-divider"><span>Structural Configuration</span></div>',
+                    unsafe_allow_html=True)
 
-    rei_options = {
-        "REI 30 (30 min)": 30,
-        "REI 45 (45 min)": 45,
-        "REI 60 (60 min)": 60,
-    }
-    rei_label = st.selectbox("**Required Fire Resistance**", list(rei_options.keys()))
-    rei_duration = rei_options[rei_label]
+        truss_options = list(TRUSS_CONFIGS.keys())
+        truss_type = st.selectbox("Truss Configuration", truss_options)
 
-    st.markdown('<div class="section-title">Cross-Section Dimensions (TRUSS)</div>',
-                unsafe_allow_html=True)
-    st.caption("Applies to all TRUSS_CONFIG members. SPECIES_DATA specimens are fixed.")
+        # ── Fire Scenario ──
+        st.markdown('<div class="sb-divider"><span>Fire Scenario</span></div>',
+                    unsafe_allow_html=True)
 
-    b_range = st.select_slider(
-        "**Width b (mm)** — range",
-        options=list(range(50, 251, 25)),
-        value=(50, 250),
-    )
-    h_range = st.select_slider(
-        "**Depth h (mm)** — range",
-        options=list(range(100, 301, 25)),
-        value=(100, 300),
-    )
+        scenario_options = {f"({k}) {v['name']}": k for k, v in FIRE_SCENARIOS.items()}
+        scenario_display = st.selectbox("Fire Scenario", list(scenario_options.keys()))
+        scenario_key = scenario_options[scenario_display]
 
-    b_values = list(range(b_range[0], b_range[1] + 1, 25))
-    h_values = list(range(h_range[0], h_range[1] + 1, 25))
+        rei_options = {
+            "REI 30  (30 min)": 30,
+            "REI 45  (45 min)": 45,
+            "REI 60  (60 min)": 60,
+        }
+        rei_label = st.selectbox("Required Fire Resistance", list(rei_options.keys()))
+        rei_duration = rei_options[rei_label]
 
-    st.markdown('<div class="section-title">Simulation</div>', unsafe_allow_html=True)
-    N = st.select_slider(
-        "**Iterations (N)**",
-        options=[500, 1_000, 2_000, 5_000, 10_000, 25_000, 50_000, 100_000],
-        value=5_000,
-    )
+        # ── Cross-Section Dimensions ──
+        st.markdown('<div class="sb-divider"><span>Cross-Section Dimensions</span></div>',
+                    unsafe_allow_html=True)
 
-    st.markdown("---")
-    run_btn = st.button("🚀  Run Simulation", use_container_width=True)
+        st.caption("Truss member dimensions — all members use the same b × h.")
+
+        b_range = st.select_slider(
+            "Width b (mm) — range",
+            options=list(range(50, 251, 25)),
+            value=(50, 250),
+        )
+        h_range = st.select_slider(
+            "Depth h (mm) — range",
+            options=list(range(100, 301, 25)),
+            value=(100, 300),
+        )
+
+        b_values = list(range(b_range[0], b_range[1] + 1, 25))
+        h_values = list(range(h_range[0], h_range[1] + 1, 25))
+
+        # ── Simulation ──
+        st.markdown('<div class="sb-divider"><span>Simulation</span></div>',
+                    unsafe_allow_html=True)
+
+        N = st.select_slider(
+            "Iterations (N)",
+            options=[500, 1_000, 2_000, 5_000, 10_000, 25_000, 50_000, 100_000],
+            value=5_000,
+        )
+
+        st.markdown("---")
+        run_btn = st.form_submit_button("🚀  Run Simulation", use_container_width=True)
+
+    # ── Sidebar footer ──
+    st.markdown("""
+    <div class="sidebar-footer">
+        <span>MCS ENGINE v2.0 · EN 1995-1-2</span>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────
 # HEADER
@@ -500,17 +638,67 @@ with tab1:
     # Methodology reference box
     with st.expander("📖 Methodology Reference (Table 3.2 — Limit State Functions)"):
         st.markdown("""
-| FM | Member | Limit State Function |
-|---|---|---|---|
-| FM1 | Top Chord | G₁ = k_c,y · f_c,0,d,fi · A_ef − N_Ed,fi |
-| FM2 | Top Chord | G₂ = 1 − [(σ_c,0,d / k_c,y·f_c,0,d,fi)² + σ_m,y,d/f_m,d,fi] |
-| FM4 | Bottom Chord | G₄ = f_m,d,fi · W_ef,y − M_Ed,fi |
-| FM4a | Bottom Chord | G₄ₐ = 1 − (σ_t,0,d/f_t,0,d,fi + σ_m,y,d/f_m,d,fi) |
-| FM5 | Bottom Chord | G₅ = k_crit · f_m,d,fi · W_ef,y − M_Ed,fi |
-| FM6 | Web (Comp.) | G₆ = k_c · f_c,0,d,fi · A_ef − N_Ed,fi,web |
-| FM7 | Web (Tension) | G₇ = f_t,0,d,fi · A_ef − N_Ed,fi,web |
-| FM8 | All Members | G₈ = f_v,d,fi · A_ef,shear − V_Ed,fi |
-        """)
+<table style="width:100%; border-collapse:collapse; font-size:0.85rem; color:#e6edf3;">
+  <thead>
+    <tr style="border-bottom:2px solid rgba(88,166,255,0.3);">
+      <th style="padding:10px 12px; text-align:left; color:#8b949e; font-weight:600; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em;">FM</th>
+      <th style="padding:10px 12px; text-align:left; color:#8b949e; font-weight:600; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em;">Description</th>
+      <th style="padding:10px 12px; text-align:left; color:#8b949e; font-weight:600; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em;">Member</th>
+      <th style="padding:10px 12px; text-align:left; color:#8b949e; font-weight:600; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em;">Limit State Function</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style="border-bottom:1px solid rgba(48,54,61,0.5);">
+      <td style="padding:8px 12px; font-weight:600; color:#58a6ff;">FM1</td>
+      <td style="padding:8px 12px;">Compression Buckling</td>
+      <td style="padding:8px 12px; color:#8b949e;">Top Chord</td>
+      <td style="padding:8px 12px; font-family:monospace; font-size:0.8rem;">G₁ = k<sub>c,y</sub> · f<sub>c,0,d,fi</sub> · A<sub>ef</sub> − N<sub>Ed,fi</sub></td>
+    </tr>
+    <tr style="border-bottom:1px solid rgba(48,54,61,0.5);">
+      <td style="padding:8px 12px; font-weight:600; color:#58a6ff;">FM2</td>
+      <td style="padding:8px 12px;">Combined Bending + Compression</td>
+      <td style="padding:8px 12px; color:#8b949e;">Top Chord</td>
+      <td style="padding:8px 12px; font-family:monospace; font-size:0.8rem;">G₂ = 1 − [(σ<sub>c,0,d</sub> / k<sub>c,y</sub>·f<sub>c,0,d,fi</sub>)² + σ<sub>m,y,d</sub>/f<sub>m,d,fi</sub>]</td>
+    </tr>
+    <tr style="border-bottom:1px solid rgba(48,54,61,0.5); background:rgba(22,27,34,0.3);">
+      <td style="padding:8px 12px; font-weight:600; color:#bc8cff;">FM4</td>
+      <td style="padding:8px 12px;">Bending</td>
+      <td style="padding:8px 12px; color:#8b949e;">Bottom Chord</td>
+      <td style="padding:8px 12px; font-family:monospace; font-size:0.8rem;">G₄ = f<sub>m,d,fi</sub> · W<sub>ef,y</sub> − M<sub>Ed,fi</sub></td>
+    </tr>
+    <tr style="border-bottom:1px solid rgba(48,54,61,0.5); background:rgba(22,27,34,0.3);">
+      <td style="padding:8px 12px; font-weight:600; color:#bc8cff;">FM4a</td>
+      <td style="padding:8px 12px;">Combined Tension + Bending</td>
+      <td style="padding:8px 12px; color:#8b949e;">Bottom Chord</td>
+      <td style="padding:8px 12px; font-family:monospace; font-size:0.8rem;">G₄ₐ = 1 − (σ<sub>t,0,d</sub>/f<sub>t,0,d,fi</sub> + σ<sub>m,y,d</sub>/f<sub>m,d,fi</sub>)</td>
+    </tr>
+    <tr style="border-bottom:1px solid rgba(48,54,61,0.5); background:rgba(22,27,34,0.3);">
+      <td style="padding:8px 12px; font-weight:600; color:#bc8cff;">FM5</td>
+      <td style="padding:8px 12px;">Lateral-Torsional Buckling</td>
+      <td style="padding:8px 12px; color:#8b949e;">Bottom Chord</td>
+      <td style="padding:8px 12px; font-family:monospace; font-size:0.8rem;">G₅ = k<sub>crit</sub> · f<sub>m,d,fi</sub> · W<sub>ef,y</sub> − M<sub>Ed,fi</sub></td>
+    </tr>
+    <tr style="border-bottom:1px solid rgba(48,54,61,0.5);">
+      <td style="padding:8px 12px; font-weight:600; color:#3fb950;">FM6</td>
+      <td style="padding:8px 12px;">Web Compression Buckling</td>
+      <td style="padding:8px 12px; color:#8b949e;">Web (Comp.)</td>
+      <td style="padding:8px 12px; font-family:monospace; font-size:0.8rem;">G₆ = k<sub>c</sub> · f<sub>c,0,d,fi</sub> · A<sub>ef</sub> − N<sub>Ed,fi,web</sub></td>
+    </tr>
+    <tr style="border-bottom:1px solid rgba(48,54,61,0.5);">
+      <td style="padding:8px 12px; font-weight:600; color:#3fb950;">FM7</td>
+      <td style="padding:8px 12px;">Web Tension</td>
+      <td style="padding:8px 12px; color:#8b949e;">Web (Tension)</td>
+      <td style="padding:8px 12px; font-family:monospace; font-size:0.8rem;">G₇ = f<sub>t,0,d,fi</sub> · A<sub>ef</sub> − N<sub>Ed,fi,web</sub></td>
+    </tr>
+    <tr>
+      <td style="padding:8px 12px; font-weight:600; color:#d29922;">FM8</td>
+      <td style="padding:8px 12px;">Shear</td>
+      <td style="padding:8px 12px; color:#8b949e;">All Members</td>
+      <td style="padding:8px 12px; font-family:monospace; font-size:0.8rem;">G₈ = f<sub>v,d,fi</sub> · A<sub>ef,shear</sub> − V<sub>Ed,fi</sub></td>
+    </tr>
+  </tbody>
+</table>
+        """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────
 # TAB 2 — FAILURE MODE DISTRIBUTION
