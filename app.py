@@ -418,8 +418,8 @@ def beta_badge(beta_val):
     else:
         return '<span class="badge-fail">CRITICAL</span>'
 
-pf = summary['Pf']
-beta = summary['Beta']
+pf = summary['Pf_System']
+beta = summary['Beta_System']
 n_fail = summary['Failures']
 
 col1, col2, col3, col4 = st.columns(4)
@@ -428,7 +428,6 @@ with col1:
     <div class="metric-card">
       <div class="metric-label">Reliability Index β (nominal b={b_nom}, h={h_nom})</div>
       <div class="metric-value">{beta:.3f}</div>
-      <div class="metric-sub">[{summary['Beta_Low']:.3f}, {summary['Beta_High']:.3f}] 95% CI &nbsp; {beta_badge(beta)}</div>
     </div>""", unsafe_allow_html=True)
 with col2:
     pf_str = f"{pf:.3e}" if pf > 0 else "< 1/N"
@@ -436,7 +435,6 @@ with col2:
     <div class="metric-card">
       <div class="metric-label">Probability of Failure Pf</div>
       <div class="metric-value">{pf_str}</div>
-      <div class="metric-sub">[{summary['Pf_Low']:.2e}, {summary['Pf_High']:.2e}] 95% CI</div>
     </div>""", unsafe_allow_html=True)
 with col3:
     st.markdown(f"""
@@ -479,18 +477,14 @@ with tab1:
         f"{treatment.capitalize()} · {truss_type} · REI {rei_duration}"
     )
 
-    display_df = sweep_df[["b", "h", "Pf", "Pf_Low", "Pf_High", "Beta",
-                            "Beta_Low", "Beta_High", "Failures"]].copy()
+    display_df = sweep_df[["b", "h", "Pf_System", "Beta_System", "Failures"]].copy()
     display_df.columns = [
-        "b (mm)", "h (mm)", "Pf", "Pf Low (95%)", "Pf High (95%)",
-        "β", "β Low", "β High", "Failures"
+        "b (mm)", "h (mm)", "Pf", "β", "Failures"
     ]
 
     # Format
-    for col in ["Pf", "Pf Low (95%)", "Pf High (95%)"]:
-        display_df[col] = display_df[col].apply(lambda x: f"{x:.4e}")
-    for col in ["β", "β Low", "β High"]:
-        display_df[col] = display_df[col].apply(lambda x: f"{x:.4f}")
+    display_df["Pf"] = display_df["Pf"].apply(lambda x: f"{x:.4e}")
+    display_df["β"] = display_df["β"].apply(lambda x: f"{x:.4f}")
 
     st.dataframe(display_df, width="stretch", hide_index=True)
 
@@ -614,7 +608,7 @@ with tab3:
     )
     show_pf = "Pf" in metric_choice
 
-    pivot_col = "Pf" if show_pf else "Beta"
+    pivot_col = "Pf_System" if show_pf else "Beta_System"
     pivot = sweep_df.pivot(index="h", columns="b", values=pivot_col)
     z = pivot.values
     x_labels = [f"b={int(v)}" for v in pivot.columns]
@@ -694,7 +688,7 @@ with tab4:
                 mode="lines", name="Pf (running)",
                 line=dict(color=ACCENT_BLUE, width=2),
             ))
-            fig_conv_pf.add_hline(y=summary["Pf"], line_dash="dash",
+            fig_conv_pf.add_hline(y=summary["Pf_System"], line_dash="dash",
                                    line_color=ACCENT_PURPLE, annotation_text="Final Pf")
             fig_conv_pf.update_layout(
                 **plotly_layout("Pf Convergence", "Iterations N", "Probability of Failure"),
@@ -709,8 +703,8 @@ with tab4:
                 mode="lines", name="β (running)",
                 line=dict(color=ACCENT_PURPLE, width=2),
             ))
-            fig_conv_beta.add_hline(y=summary["Beta"], line_dash="dash",
-                                     line_color=ACCENT_BLUE, annotation_text=f"β = {summary['Beta']:.3f}")
+            fig_conv_beta.add_hline(y=summary["Beta_System"], line_dash="dash",
+                                     line_color=ACCENT_BLUE, annotation_text=f"β = {summary['Beta_System']:.3f}")
             fig_conv_beta.update_layout(
                 **plotly_layout("β Convergence", "Iterations N", "Reliability Index β"),
                 height=360,
