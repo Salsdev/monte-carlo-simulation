@@ -308,7 +308,7 @@ with st.sidebar:
     )
 
     st.markdown("---")
-    run_btn = st.button("🚀  Run Simulation", width="stretch")
+    run_btn = st.button("🚀  Run Simulation", use_container_width=True)
 
 # ─────────────────────────────────────────
 # HEADER
@@ -486,7 +486,7 @@ with tab1:
     display_df["Pf"] = display_df["Pf"].apply(lambda x: f"{x:.4e}")
     display_df["β"] = display_df["β"].apply(lambda x: f"{x:.4f}")
 
-    st.dataframe(display_df, width="stretch", hide_index=True)
+    st.dataframe(display_df, use_container_width=True, hide_index=True)
 
     # Download button
     csv = sweep_df.to_csv(index=False)
@@ -555,7 +555,7 @@ with tab2:
                 **plotly_layout("Failure Mode Breakdown", "Relative Frequency (%)", ""),
                 height=400,
             )
-            st.plotly_chart(fig_bar, width="stretch")
+            st.plotly_chart(fig_bar, use_container_width=True)
 
         with col_b:
             fig_pie = go.Figure(go.Pie(
@@ -571,7 +571,7 @@ with tab2:
                 height=400,
                 showlegend=True,
             )
-            st.plotly_chart(fig_pie, width="stretch")
+            st.plotly_chart(fig_pie, use_container_width=True)
 
     # Stacked bar across all b/h combinations
     st.subheader("Failure Mode Distribution Across b/h Combinations")
@@ -593,7 +593,7 @@ with tab2:
             height=380,
             xaxis_tickangle=-45,
         )
-        st.plotly_chart(fig_stack, width="stretch")
+        st.plotly_chart(fig_stack, use_container_width=True)
 
 # ─────────────────────────────────────────
 # TAB 3 — PARAMETRIC HEATMAP
@@ -640,7 +640,7 @@ with tab3:
         ),
         height=520,
     )
-    st.plotly_chart(fig_heat, width="stretch")
+    st.plotly_chart(fig_heat, use_container_width=True)
 
     # 3D surface alternative
     with st.expander("🧊 Show 3D Surface"):
@@ -664,7 +664,7 @@ with tab3:
             height=500,
             margin=dict(l=0, r=0, t=30, b=0),
         )
-        st.plotly_chart(fig_3d, width="stretch")
+        st.plotly_chart(fig_3d, use_container_width=True)
 
 # ─────────────────────────────────────────
 # TAB 4 — CONVERGENCE
@@ -694,7 +694,7 @@ with tab4:
                 **plotly_layout("Pf Convergence", "Iterations N", "Probability of Failure"),
                 height=360,
             )
-            st.plotly_chart(fig_conv_pf, width="stretch")
+            st.plotly_chart(fig_conv_pf, use_container_width=True)
 
         with col_b:
             fig_conv_beta = go.Figure()
@@ -709,7 +709,7 @@ with tab4:
                 **plotly_layout("β Convergence", "Iterations N", "Reliability Index β"),
                 height=360,
             )
-            st.plotly_chart(fig_conv_beta, width="stretch")
+            st.plotly_chart(fig_conv_beta, use_container_width=True)
 
         # Convergence check (Eqn 3.90)
         if len(conv_df) > 1:
@@ -763,7 +763,7 @@ with tab5:
                 ),
                 height=400,
             )
-            st.plotly_chart(fig_tornado, width="stretch")
+            st.plotly_chart(fig_tornado, use_container_width=True)
 
             st.markdown("""
             **Interpretation:**
@@ -777,7 +777,7 @@ with tab5:
                 corr_display["Spearman ρ"] = corr_display["Spearman ρ"].apply(
                     lambda x: f"{x:+.4f}"
                 )
-                st.dataframe(corr_display, width="stretch", hide_index=True)
+                st.dataframe(corr_display, use_container_width=True, hide_index=True)
 
 # ─────────────────────────────────────────
 # FOOTER
