@@ -20,7 +20,7 @@ SPECIES_DATA = {
     'W': {  # Anogeissus leiocarpa (White Wood)
         'name': 'Anogeissus leiocarpa',
         'rho': {'dist': 'normal', 'mean': 809.0, 'std': 72.0},       # kg/m³
-        'fm':  {'dist': 'lognormal', 'mean': 22.7, 'std': 5.7},      # N/mm² (Table 4.1)
+        'fm':  {'dist': 'lognormal', 'mean': 22.7, 'std': 5.7},      # N/mm²
         'fc0': {'dist': 'lognormal', 'mean': 17.4, 'std': 4.4},      # N/mm²
         'fv':  {'dist': 'lognormal', 'mean': 2.35, 'std': 0.59},     # N/mm²
         'E':   {'dist': 'lognormal', 'mean': 4612.0, 'std': 1247.0}, # N/mm²
@@ -36,7 +36,7 @@ SPECIES_DATA = {
     'R': {  # Erythrophleum suaveolens (Red Wood)
         'name': 'Erythrophleum suaveolens',
         'rho': {'dist': 'normal', 'mean': 745.0, 'std': 129.0},
-        'fm':  {'dist': 'lognormal', 'mean': 38.9, 'std': 9.3},      # (Table 4.1)
+        'fm':  {'dist': 'lognormal', 'mean': 38.9, 'std': 9.3},      
         'fc0': {'dist': 'lognormal', 'mean': 27.1, 'std': 6.8},
         'fv':  {'dist': 'lognormal', 'mean': 4.03, 'std': 1.01},
         'E':   {'dist': 'normal',    'mean': 8935.0, 'std': 1591.0},
@@ -429,14 +429,12 @@ def buckling_limit_state(N_Ed, fc0, E_mod, I_ef, A_ef, theta_R, L_cr=2000):
 def shear_limit_state(V_Ed, fv, b_residual, h_residual, theta_R):
     """
     FM8: Shear per Eqns 3.52–3.56.
-    Shear area = (2/3) × geometric residual section (EN 1995-1-2).
-    Note: A_shear uses geometric b_residual × h_residual, NOT the k_mod-weighted A_ef,
-    because shear area is a geometric property of the residual cross-section.
-    G8 = fv · A_shear - 1.5 · V_Ed
+    Shear resistance V_Rd,fi = (2/3) * A_shear * fv.
+    A_shear uses geometric b_residual × h_residual, NOT the k_mod-weighted A_ef.
     """
-    A_shear = (2 / 3) * b_residual * h_residual
-    V_Rd_fi = fv * A_shear
-    return theta_R * V_Rd_fi - 1.5 * V_Ed
+    A_shear = b_residual * h_residual
+    V_Rd_fi = (2 / 3) * fv * A_shear
+    return theta_R * V_Rd_fi - V_Ed
 
 
 def combined_bending_compression_limit_state(N_Ed, M_Ed, fc0, fm, A_ef, W_ef,
@@ -656,9 +654,19 @@ def run_simulation(
             'theta_mod': theta_model, 'theta_R': theta_R, 'beta_exp': beta_exp_sampled
         }
 
+        mode_survived = {
+            'FM1_y': True, 'FM1_z': True,
+            'FM2': True,
+            'FM3': True,
+            'FM4': True, 'FM4a': True,
+            'FM5': True,
+            'FM6_y': True, 'FM6_z': True,
+            'FM7': True,
+            'FM8': True
+        }
         failed = False
         time_of_failure = duration
-        failure_mode = 'none'
+        failure_modes_triggered = []
         char_depth = 0.0
 
         # --- Time-Stepping Loop ---
@@ -671,7 +679,6 @@ def run_simulation(
                 )
                 char_depth += beta_eff
 
-            d_ef = char_depth + 7.0 if char_depth > 0 else 0.0
 
             # --- Member-by-Member Structural Check ---
             for member_name, props in truss['members'].items():
@@ -683,56 +690,95 @@ def run_simulation(
                 if species_key == 'W' and 'Web' in member_name and b_override is None:
                     b_mem = 100
 
-                A_ef, W_ef, I_ef, y_bar_fi_mod, b_residual, h_residual, I_ef_z = \
-                    get_effective_section_integrated(b_mem, h_mem, char_depth, species_key, t)
+                # Simplified Reduced Cross-Section Method (Eqns 3.11-3.12, 3.19)
+                # d_ef includes the 7mm zero-strength layer (Eqn 3.12)
+                d_ef = char_depth + 7.0 if char_depth > 0 else 0.0
+                h_ef = h_mem - d_ef            # Eqn 3.11 (depth, 1-sided charring)
+                b_ef = b_mem - 2 * d_ef        # Eqn 3.11 (width, 2-sided charring)
+                b_residual = b_mem - 2 * char_depth  # geometric residual (for FM8 shear)
+                h_residual = h_mem - char_depth       # geometric residual (for FM8 shear)
+
+                if h_ef <= 0 or b_ef <= 0:
+                    A_ef = 0  # triggers burnout logic below
+                else:
+                    A_ef   = b_ef * h_ef               # Eqn 4.13
+                    W_ef   = b_ef * h_ef**2 / 6        # Eqn 3.19
+                    I_ef   = b_ef * h_ef**3 / 12       # strong-axis
+                    I_ef_z = h_ef * b_ef**3 / 12       # weak-axis
 
                 if A_ef <= 0:
-                    failed = True
-                    failure_mode = 'Burnout'
-                    time_of_failure = t
-                    break
+                    # Map complete section loss to the actual failure modes of this member
+                    modes_to_fail = ['FM8'] # Everything can fail in shear
+                    
+                    if 'tension' in props['type']:
+                        modes_to_fail.append('FM7' if 'Web' in member_name else 'FM3')
+                        if props['k_moment'] > 0:
+                            modes_to_fail.extend(['FM4', 'FM4a'])
+                        if 'bending' in props['type'] and props['k_moment'] > 0:
+                            modes_to_fail.append('FM5')
+                            
+                    if 'compression_bending' in props['type']:
+                        modes_to_fail.append('FM2')
+                        
+                    if 'compression' in props['type'] or 'compression_bending' in props['type']:
+                        prefix = 'FM6' if 'Web' in member_name else 'FM1'
+                        modes_to_fail.extend([f"{prefix}_y", f"{prefix}_z"])
+                    
+                    for m in modes_to_fail:
+                        mode_survived[m] = False
+                        if m not in failure_modes_triggered:
+                            failure_modes_triggered.append(m)
+
+                    if not failed:
+                        failed = True
+                        time_of_failure = t
+                    continue # Skip structural checks if burned out
 
                 # Internal forces from truss factors
-                M_Ed = E_d_fi_base * props['k_moment'] * 1_000_000  # Nmm
-                N_Ed = E_d_fi_base * props['k_axial'] * 1_000       # N
+                # 15% fire-induced stiffness loss reduction (Table 4.10)
+                M_Ed = E_d_fi_base * props['k_moment'] * 1_000_000 * 0.85  # Nmm
+                N_Ed = E_d_fi_base * props['k_axial'] * 1_000 * 0.85       # N
 
-                # Fire-induced eccentricity moment contribution
-                y_NA_abs  = char_depth + y_bar_fi_mod
-                e_fire    = abs(y_NA_abs - h_mem / 2.0)
-                M_Ed_tot  = M_Ed + abs(N_Ed) * e_fire
+                # Fire eccentricity per Eqn 3.18
+                # Shift from original NA (h_mem/2 from top) to new NA (h_ef/2 from top)
+                e_fire   = abs(h_mem / 2.0 - h_ef / 2.0)
+                M_Ed_tot = M_Ed + abs(N_Ed) * e_fire
 
-                # Shear force per Eqn 3.53–3.54.
-                # V_Ed,max = q_fi [kN/m] × L_span [m] / 2 → [N]
-                # Distributed among members sharing the support node (Eqn 3.54).
-                # k_dist factors: chords ≈ 0.4, webs ≈ 0.3 (3 members at support node).
+                # Shear force per Eqn 4.126
+                # V_web ≈ V_Ed,fi / 2 = 50% distribution to web members
                 span_m   = truss['span'] / 1000.0
                 V_support = E_d_fi_base * span_m / 2.0 * 1000.0   # N — max support reaction
-                if 'Web' in member_name:
-                    V_Ed = V_support * 0.30   # diagonal/vertical webs take ~30% of support shear
-                else:
-                    V_Ed = V_support * 0.40   # chords take ~40% of support shear each
+                V_Ed = V_support * 0.50   # Eqn 4.126: 50% to web
 
                 # ---- Tension-type members (FM3, FM4, FM4a, FM5, FM7) ----
                 if 'tension' in props['type']:
-                    if tension_limit_state(N_Ed, ft0, A_ef, theta_R) <= 0:
-                        failed = True; time_of_failure = t; failure_mode = 'Web Tension' if 'Web' in member_name else 'Chord Tension'; break
+                    mode_key = 'FM7' if 'Web' in member_name else 'FM3'
+                    if mode_survived[mode_key] and tension_limit_state(N_Ed, ft0, A_ef, theta_R) <= 0:
+                        mode_survived[mode_key] = False
+                        if not failed: failed = True; time_of_failure = t
+                        if mode_key not in failure_modes_triggered: failure_modes_triggered.append(mode_key)
 
                     if props['k_moment'] > 0:
-                        if combined_tension_bending_limit_state(
+                        if mode_survived['FM4a'] and combined_tension_bending_limit_state(
                                 N_Ed, M_Ed_tot, ft0, fm, A_ef, W_ef, theta_R) <= 0:
-                            failed = True; time_of_failure = t
-                            failure_mode = 'Comb. Tension+Bending'; break
+                            mode_survived['FM4a'] = False
+                            if not failed: failed = True; time_of_failure = t
+                            if 'FM4a' not in failure_modes_triggered: failure_modes_triggered.append('FM4a')
 
-                        if bending_limit_state(M_Ed_tot, fm, W_ef, theta_R) <= 0:
-                            failed = True; time_of_failure = t; failure_mode = 'Bending'; break
+                        if mode_survived['FM4'] and bending_limit_state(M_Ed_tot, fm, W_ef, theta_R) <= 0:
+                            mode_survived['FM4'] = False
+                            if not failed: failed = True; time_of_failure = t
+                            if 'FM4' not in failure_modes_triggered: failure_modes_triggered.append('FM4')
 
                     if 'bending' in props['type'] and props['k_moment'] > 0:
                         mem_length = props.get('length', truss['span'])
                         L_ef = props['L_unbraced_ratio'] * mem_length
-                        if lateral_torsional_buckling_limit_state(
+                        if mode_survived['FM5'] and lateral_torsional_buckling_limit_state(
                                 M_Ed_tot, fm, E, W_ef, L_ef,
                                 b_residual, h_residual, theta_R) <= 0:
-                            failed = True; time_of_failure = t; failure_mode = 'LTB'; break
+                            mode_survived['FM5'] = False
+                            if not failed: failed = True; time_of_failure = t
+                            if 'FM5' not in failure_modes_triggered: failure_modes_triggered.append('FM5')
 
                 # ---- Top Chord: Combined Bending + Compression (FM2) ----
                 if 'compression_bending' in props['type']:
@@ -742,43 +788,49 @@ def run_simulation(
                     k_y    = 0.5 * (1 + 0.2 * (lambda_fi_y - 0.3) + lambda_fi_y ** 2)
                     disc   = max(0, k_y ** 2 - lambda_fi_y ** 2)
                     k_c_y  = min(1.0 / (k_y + np.sqrt(disc)), 1.0) if A_ef > 0 else 0.0
-                    if combined_bending_compression_limit_state(
+                    if mode_survived['FM2'] and combined_bending_compression_limit_state(
                             N_Ed, M_Ed_tot, fc0, fm, A_ef, W_ef, k_c_y, theta_R) <= 0:
-                        failed = True; time_of_failure = t
-                        failure_mode = 'Comb. Bending+Comp'; break
+                        mode_survived['FM2'] = False
+                        if not failed: failed = True; time_of_failure = t
+                        if 'FM2' not in failure_modes_triggered: failure_modes_triggered.append('FM2')
 
                 # ---- Compression-type members: Buckling (FM1, FM6) ----
-                # Eqn 3.43: k_c = min(k_c,y, k_c,z) — check both axes
-                if 'compression' in props['type']:
+                if 'compression' in props['type'] or 'compression_bending' in props['type']: # Check both for FM1/6!
                     L_cr_y = props['L_unbraced_ratio'] * truss['span']
+                    mode_prefix = 'FM6' if 'Web' in member_name else 'FM1'
+
                     # Strong-axis buckling
-                    if buckling_limit_state(
+                    mode_key_y = f"{mode_prefix}_y"
+                    if mode_survived[mode_key_y] and buckling_limit_state(
                             N_Ed, fc0, E, I_ef, A_ef, theta_R, L_cr=L_cr_y) <= 0:
-                        failed = True
-                        time_of_failure = t
-                        failure_mode = 'Web Buckling (y)' if 'Web' in member_name else 'Chord Buckling (y)'
-                        break
-                    # Weak-axis buckling — Table 4.16: web members have mid-length
-                    # discrete restraints, so L_cr_z = 0.5 × L
+                        mode_survived[mode_key_y] = False
+                        if not failed: failed = True; time_of_failure = t
+                        if mode_key_y not in failure_modes_triggered: failure_modes_triggered.append(mode_key_y)
+                        
+                    # Weak-axis buckling
                     L_cr_z = 0.5 * L_cr_y
-                    if buckling_limit_state(
+                    mode_key_z = f"{mode_prefix}_z"
+                    if mode_survived[mode_key_z] and buckling_limit_state(
                             N_Ed, fc0, E, I_ef_z, A_ef, theta_R, L_cr=L_cr_z) <= 0:
-                        failed = True
-                        time_of_failure = t
-                        failure_mode = 'Web Buckling (z)' if 'Web' in member_name else 'Chord Buckling (z)'
-                        break
+                        mode_survived[mode_key_z] = False
+                        if not failed: failed = True; time_of_failure = t
+                        if mode_key_z not in failure_modes_triggered: failure_modes_triggered.append(mode_key_z)
 
                 # ---- All members: Shear (FM8) ----
-                if shear_limit_state(V_Ed, fv, b_residual, h_residual, theta_R) <= 0:
-                    failed = True; time_of_failure = t; failure_mode = 'Shear'; break
+                # Uses effective area (b_ef × h_ef) per Section 4.15.4
+                if mode_survived['FM8'] and shear_limit_state(V_Ed, fv, b_ef, h_ef, theta_R) <= 0:
+                    mode_survived['FM8'] = False
+                    if not failed: failed = True; time_of_failure = t
+                    if 'FM8' not in failure_modes_triggered: failure_modes_triggered.append('FM8')
 
-            if failed:
+            # Only break if ALL modes have failed
+            if not any(mode_survived.values()):
                 break
 
         results.append({
             'failed': failed,
             'time': time_of_failure,
-            'mode': failure_mode,
+            'modes_triggered': ','.join(failure_modes_triggered) if failed else 'none',
             'truss': truss_type
         })
 
@@ -814,21 +866,78 @@ def calculate_exact_confidence_intervals(k, n, confidence=0.95):
 
 def analyze_results(df, scenario_name, species_name, treatment):
     """
-    Compute Pf, β, 95% CIs, and failure mode breakdown.
-    Returns a dictionary aligned with Table 3.2 / methodology output format.
+    Compute Pf, β, 95% CIs, individual Pf_k, individual β_k, and system metrics.
+    Returns a dictionary strictly aligned with Chapter 3 methodology.
     """
     total = len(df)
     failures = df[df['failed']]
     num_failures = len(failures)
-    pf = num_failures / total
-    (pf_l, pf_u), (beta_l, beta_u) = calculate_exact_confidence_intervals(num_failures, total)
-    beta = -stats.norm.ppf(pf) if pf > 0 else 5.0
+    
+    # =========================================================
+    # NEW LOGIC: strictly adhering to Equations 3.83 to 3.86
+    # =========================================================
+    
+    # Helper: Count total iterations where specific limit states were triggered
+    def count_mode_iterations(*mode_names):
+        count = 0
+        for modes_str in df['modes_triggered']:
+            if pd.isna(modes_str) or modes_str == 'none':
+                continue
+            triggered = [m.strip() for m in modes_str.split(',')]
+            # If any of the requested modes are in the triggered list, count the iteration once
+            if any(m in triggered for m in mode_names):
+                count += 1
+        return count
 
-    modes = failures['mode'].value_counts() if num_failures > 0 else {}
+    # Step 3: Compute individual probabilities (Eqn. 3.83: Pf,k = failures[k] / Nsim)
+    # Using the 8 distinct limit states defined in Table 3.2
+    failures_k = {
+        'FM1': count_mode_iterations('FM1_y', 'FM1_z'),
+        'FM2': count_mode_iterations('FM2'),
+        'FM3': count_mode_iterations('FM3'),
+        'FM4': count_mode_iterations('FM4', 'FM4a'), # Combines pure bending and comb. tension/bending
+        'FM5': count_mode_iterations('FM5'),
+        'FM6': count_mode_iterations('FM6_y', 'FM6_z'),
+        'FM7': count_mode_iterations('FM7'),
+        'FM8': count_mode_iterations('FM8')
+    }
+    
+    pf_k = {k: v / total for k, v in failures_k.items()}
+
+    # Helper: Calculate Reliability Index
+    def calc_beta(pf_val):
+        if pf_val <= 0: return 5.0 # Max cap for 0 failures
+        if pf_val >= 1: return float('-inf') # Min cap for 100% failures
+        return -stats.norm.ppf(pf_val)
+
+    # Step 5: Compute individual reliability indices (Eqn. 3.85: βk = -Φ^-1(Pf,k))
+    beta_k = {k: calc_beta(v) for k, v in pf_k.items()}
+
+    # Step 4: System probability of failure (series system) (Eqn. 3.84)
+    # Pf,system = 1 - product[1 to 8] (1 - Pf,k)
+    survival_prob = 1.0
+    for p in pf_k.values():
+        survival_prob *= (1.0 - p)
+    pf_system = 1.0 - survival_prob
+
+    # Step 5: System reliability index (Eqn. 3.86: βsystem = -Φ^-1(Pf,system))
+    beta_system = calc_beta(pf_system)
+
+
+    # =========================================================
+    # LEGACY LOGIC: Preserved for UI and Dashboard Plotting
+    # =========================================================
+    mode_counts = {}
+    for modes_str in failures['modes_triggered']:
+        if pd.isna(modes_str) or modes_str == 'none':
+            continue
+        for mode in modes_str.split(','):
+            mode = mode.strip()
+            mode_counts[mode] = mode_counts.get(mode, 0) + 1
 
     def pct(*mode_names):
-        """Sum percentages for one or more mode name variants."""
-        total_count = sum(modes.get(m, 0) for m in mode_names)
+        """Sum conditional percentages for one or more mode name variants."""
+        total_count = sum(mode_counts.get(m, 0) for m in mode_names)
         return (total_count / num_failures * 100) if num_failures > 0 else 0.0
 
     return {
@@ -837,26 +946,35 @@ def analyze_results(df, scenario_name, species_name, treatment):
         'Treatment':             treatment,
         'N':                     total,
         'Failures':              num_failures,
-        'Pf':                    pf,
-        'Pf_Low':                pf_l,
-        'Pf_High':               pf_u,
-        'Beta':                  beta,
-        'Beta_Low':              beta_l,
-        'Beta_High':             beta_u,
-        'FM1_Buckling%':         pct('Chord Buckling (y)', 'Chord Buckling (z)'),
-        'FM1_Buckling_y%':       pct('Chord Buckling (y)'),
-        'FM1_Buckling_z%':       pct('Chord Buckling (z)'),
-        'FM2_CombBendComp%':     pct('Comb. Bending+Comp'),
-        'FM3_Tension%':          pct('Chord Tension'),
-        'FM4_Bending%':          pct('Bending'),
-        'FM4a_CombTenBend%':     pct('Comb. Tension+Bending'),
-        'FM5_LTB%':              pct('LTB'),
-        'FM6_WBuckling%':        pct('Web Buckling (y)', 'Web Buckling (z)'),
-        'FM6_WBuckling_y%':      pct('Web Buckling (y)'),
-        'FM6_WBuckling_z%':      pct('Web Buckling (z)'),
-        'FM7_WTension%':         pct('Web Tension'),
-        'FM8_Shear%':            pct('Shear'),
-        'Burnout%':              pct('Burnout'),
+        
+        # --- EQUATIONS 3.84 & 3.86 (True Series System Metrics) ---
+        'Pf_System':             pf_system,
+        'Beta_System':           beta_system,
+        
+        # --- EQUATIONS 3.83 & 3.85 (Individual Mode Metrics) ---
+        'Pf_FM1': pf_k['FM1'], 'Beta_FM1': beta_k['FM1'],
+        'Pf_FM2': pf_k['FM2'], 'Beta_FM2': beta_k['FM2'],
+        'Pf_FM3': pf_k['FM3'], 'Beta_FM3': beta_k['FM3'],
+        'Pf_FM4': pf_k['FM4'], 'Beta_FM4': beta_k['FM4'],
+        'Pf_FM5': pf_k['FM5'], 'Beta_FM5': beta_k['FM5'],
+        'Pf_FM6': pf_k['FM6'], 'Beta_FM6': beta_k['FM6'],
+        'Pf_FM7': pf_k['FM7'], 'Beta_FM7': beta_k['FM7'],
+        'Pf_FM8': pf_k['FM8'], 'Beta_FM8': beta_k['FM8'],
+        
+        # --- UI COMPATIBILITY (Conditional % of Failed Runs) ---
+        'FM1_Buckling%':         pct('FM1_y', 'FM1_z'),
+        'FM1_Buckling_y%':       pct('FM1_y'),
+        'FM1_Buckling_z%':       pct('FM1_z'),
+        'FM2_CombBendComp%':     pct('FM2'),
+        'FM3_Tension%':          pct('FM3'),
+        'FM4_Bending%':          pct('FM4', 'FM4a'),
+        'FM4a_CombTenBend%':     pct('FM4a'),
+        'FM5_LTB%':              pct('FM5'),
+        'FM6_WBuckling%':        pct('FM6_y', 'FM6_z'),
+        'FM6_WBuckling_y%':      pct('FM6_y'),
+        'FM6_WBuckling_z%':      pct('FM6_z'),
+        'FM7_WTension%':         pct('FM7'),
+        'FM8_Shear%':            pct('FM8'),
     }
 
 
